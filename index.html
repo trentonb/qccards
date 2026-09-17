@@ -85,7 +85,6 @@ button,select{font:inherit;color:inherit}
 @media (min-width:760px){
   .layout{display:grid;grid-template-columns:204px minmax(0,1fr);gap:16px;align-items:start}
   .side{position:sticky;top:12px}
-  .side .legend{flex-direction:column;gap:8px;margin-top:16px}
 }
 
 /* orbs */
@@ -118,11 +117,6 @@ button,select{font:inherit;color:inherit}
 .grow{flex:1}
 .bar label{font-size:13px;color:var(--ink-2)}
 .bar select{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;min-height:38px;padding:5px 8px;font-size:13px}
-.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:8px}
-.legend .lg{display:flex;align-items:center;gap:6px}
-.ramp{display:inline-flex;gap:1px}
-.ramp i{width:9px;height:10px;display:block}
-.ramp i:first-child{border-radius:3px 0 0 3px}.ramp i:last-child{border-radius:0 3px 3px 0}
 
 /* lens: full-size readout of the blade under the pointer or finger */
 .lens{height:44px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;margin-top:8px;white-space:nowrap;overflow:hidden}
@@ -169,13 +163,7 @@ button,select{font:inherit;color:inherit}
 .chip.big .wh{grid-column:1 / -1;margin-top:7px}
 .mrow{display:flex;gap:4px}
 .mchip{flex:1;border-radius:7px;font-size:11px;font-weight:600;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
-.seg.small button{min-height:38px;padding:3px 13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1.1}
-/* each measure's color ramp, low to high, under its letter: the switch doubles as the legend */
-.rb{display:flex;gap:1px}
-.rb i{display:block;width:5px;height:4px}
-.rb i:first-child{border-radius:2px 0 0 2px}.rb i:last-child{border-radius:0 2px 2px 0}
-.menu .legend{flex-direction:column;align-items:flex-start;gap:8px;margin:4px 0 0;padding:12px 14px 8px;border-top:1px solid var(--line);white-space:nowrap}
-.menu .legend .lg-long{display:inline}
+.seg.small button{min-height:34px;padding:4px 13px}
 
 /* ticket detail: rises out of the top of the selected load's card */
 .pop{position:absolute;left:0;top:0;z-index:20;box-sizing:border-box;padding:12px 14px 10px;background:var(--surface);border:1.5px solid var(--ink);border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.30);font-size:calc(12.5px * var(--pz,1));color:var(--ink-2);transform:scale(.12);opacity:0;pointer-events:none;transition:transform .5s cubic-bezier(.3,1.45,.5,1),opacity .22s}
@@ -211,14 +199,10 @@ tr:last-child td{border-bottom:0}
   .seg button{padding:6px 11px}
   .reset{width:42px;height:42px}
   .top-l{gap:8px}
-  .legend .lg-long{display:none}
   .crumbs .hint{display:none}
-  .legend{justify-content:center;gap:10px;margin-top:8px;flex-wrap:nowrap;white-space:nowrap}
   .side{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
   .orbs{width:100%}
   .side .btn{flex:none;min-height:36px;padding:4px 12px}
-  .side .legend{order:5;width:100%}
-  .ramp i{width:6px}
   .lens{height:38px;margin-top:2px}
   .lens.idle{font-size:12px}
   .orb{padding:2px}
@@ -249,7 +233,6 @@ tr:last-child td{border-bottom:0}
       <div class="menu" id="menu" role="menu">
         <button class="mi" id="sndBtn" role="menuitemcheckbox" aria-checked="false">Sound off</button>
         <button class="mi" id="linkBtn" role="menuitem">Copy link</button>
-        <div class="legend" id="legend"></div>
       </div>
     </div>
   </div>
@@ -265,9 +248,9 @@ tr:last-child td{border-bottom:0}
     <span class="grow"></span>
     <div class="seg small" id="show" role="group" aria-label="Show on cards">
       <button data-k="all">All</button>
-      <button data-k="p" title="Pressure (lb)">P<i class="rb"></i></button>
-      <button data-k="st" title="Starch (1–6)">St<i class="rb"></i></button>
-      <button data-k="ss" title="Soluble solids (°Bx)">SS<i class="rb"></i></button>
+      <button data-k="p" title="Pressure (lb)">P</button>
+      <button data-k="st" title="Starch (1–6)">St</button>
+      <button data-k="ss" title="Soluble solids (°Bx)">SS</button>
     </div>
   </div>
 
@@ -385,7 +368,7 @@ const state = {
 const $ = s => document.querySelector(s);
 /* two frames later, or 80ms if the tab is not painting */
 function nextFrame(fn){ let done = false; const run = () => { if (!done){ done = true; fn(); } }; requestAnimationFrame(() => requestAnimationFrame(run)); setTimeout(run, 80); }
-const els = {resetBtn:$('#resetBtn'), sndBtn:$('#sndBtn'), linkBtn:$('#linkBtn'), days:$('#days'), lens:$('#lens'), orbs:$('#orbs'),  crumbs:$('#crumbs'), legend:$('#legend'), stage:$('#stage'),
+const els = {resetBtn:$('#resetBtn'), sndBtn:$('#sndBtn'), linkBtn:$('#linkBtn'), days:$('#days'), lens:$('#lens'), orbs:$('#orbs'),  crumbs:$('#crumbs'),  stage:$('#stage'),
   stageIn:$('#stageIn'), deckP:$('#deckP'), deckC:$('#deckC'), pop:$('#pop'), down:$('#downBtn'), downLbl:$('#downLbl'), table:$('#table')};
 
 function scope(except, anyDay){
@@ -577,15 +560,6 @@ glassDrag(segEl, segLens, segBtns, {
   },
   tap: i => { setDays(7 - +segBtns[i].dataset.p, 6); render(); }
 });
-function renderLegend(){
-  const mode = darkMQ.matches ? 'dark' : 'light';
-  els.legend.innerHTML = KEYS.map(k => {
-    const m = METRICS[k];
-    return `<span class="lg"><span class="ramp">${m[mode].f.map(c => `<i style="background:${c}"></i>`).join('')}</span><span>${m.name}<span class="lg-long"> (${m.unit})</span></span></span>`;
-  }).join('') + '<span class="lg lg-long" style="color:var(--ink-3)">Color runs low to high</span>';
-  document.querySelectorAll('#show button[data-k]').forEach(b => { const rb = b.querySelector('.rb'); if (rb) rb.innerHTML = METRICS[b.dataset.k][mode].f.map(c => `<i style="background:${c}"></i>`).join(''); });
-}
-
 /* -------------------------------------------------------------------- orbs */
 const SORTS = [['default','Default','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑'], ['streif','Streif','↑']];
 const ORBS = [
@@ -1218,8 +1192,8 @@ try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else down(); } });
 addEventListener('resize', () => { renderDays(); renderShow(); renderDecks(); renderOrbs(true); });
-darkMQ.addEventListener('change', () => { renderLegend(); render(); });
-readURL(); renderLegend(); render();
+darkMQ.addEventListener('change', render);
+readURL(); render();
 })();
 </script>
 </body>
