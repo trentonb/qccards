@@ -165,7 +165,8 @@ button,select{font:inherit;color:inherit}
 .chip.big .sp{grid-column:1 / -1;height:22px;margin-top:5px}
 .chip.big .wh{grid-column:1 / -1;margin-top:7px}
 .mrow{display:flex;gap:4px}
-.mchip{flex:1 1 0;min-width:0;border-radius:7px;font-size:11px;font-weight:600;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mchip{flex:1 1 0;min-width:0;overflow:hidden;border-radius:7px;font-size:11px;font-weight:600;letter-spacing:-.02em;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mchip small{font-size:8.5px;font-weight:600;letter-spacing:.02em;opacity:.8;margin-right:2px;text-transform:uppercase}
 .seg.small button{min-height:34px;padding:4px 13px}
 
 /* ticket detail: rises out of the top of the selected load's card */
@@ -437,7 +438,7 @@ function chip(k, v, extra, big){
 function chipSet(o, extraOf){
   const f = state.show;
   if (f === 'all') return `<span class="chips">${KEYS.map(k => chip(k, o[k], extraOf(k))).join('')}</span>`;
-  return `<span class="chips">${chip(f, o[f], extraOf(f), true)}<span class="mrow">${KEYS.filter(k => k !== f).map(k => `<span class="mchip" style="${tone(k, o[k])}">${METRICS[k].tag} ${o[k].toFixed(1)}</span>`).join('')}</span></span>`;
+  return `<span class="chips">${chip(f, o[f], extraOf(f), true)}<span class="mrow">${KEYS.filter(k => k !== f).map(k => `<span class="mchip" style="${tone(k, o[k])}"><small>${METRICS[k].tag}</small>${o[k].toFixed(1)}</span>`).join('')}</span></span>`;
 }
 const MINSPAN = {p:1.6, st:1.2, ss:1.2};
 function spark(k, series){
