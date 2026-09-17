@@ -57,6 +57,12 @@ button,select{font:inherit;color:inherit}
 .menu.open{transform:none;opacity:1;pointer-events:auto}
 .mi{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:0 14px;border:0;border-radius:11px;background:transparent;font-size:14px;text-align:left;cursor:pointer}
 .mi:hover{background:var(--surface-2)}
+.msep{height:1px;margin:4px 8px;background:var(--line)}
+.mform{display:flex;gap:6px;padding:4px 8px 8px}
+.mform[hidden]{display:none}
+.mform input{flex:1;min-width:0;height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);font:inherit;font-size:16px}
+.mform .btn{min-height:40px}
+.menu{min-width:250px}
 .mi.live::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--accent)}
 .top-l{display:flex;align-items:center;gap:10px}
 .reset{width:46px;height:46px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;color:var(--ink-3);border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);transition:transform .3s cubic-bezier(.3,1.7,.5,1),color .2s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
@@ -105,6 +111,7 @@ button,select{font:inherit;color:inherit}
 .orb.zero .o1,.orb.zero .o2{color:var(--ink-3)}
 .o-x{position:absolute;top:-6px;right:-6px;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--bg);display:none;align-items:center;justify-content:center;font-size:17px;line-height:1;box-shadow:var(--shadow)}
 .o-x::after{content:"";position:absolute;inset:-7px;border-radius:50%}
+.o-x.del{display:flex;width:24px;height:24px;top:-5px;right:-5px;font-size:14px}
 .orb.on .o-x{display:flex;animation:pop .3s cubic-bezier(.3,1.7,.5,1)}
 .o-x:active{transform:scale(.85)}
 
@@ -214,7 +221,9 @@ tr:last-child td{border-bottom:0}
   .lens{height:38px;margin-top:2px}
   .lens.idle{font-size:12px}
   .orb{padding:2px}
-  .orb .o2{font-size:12px}
+  .orb .o1{font-size:10px}
+  .o-x{width:22px;height:22px;top:-6px;right:-6px;font-size:13px}
+  .orb .o2{font-size:11px}
 }
 @media (prefers-reduced-motion: reduce){*{transition-duration:.01s!important}}
 </style>
@@ -224,7 +233,7 @@ tr:last-child td{border-bottom:0}
   <h1 class="sr-only">Load ticket fan deck</h1>
   <div class="top">
     <div class="top-l">
-      <button class="reset" id="resetBtn" aria-label="Home: back to the default view" title="Home: last 7 days, by variety, nothing selected">
+      <button class="reset" id="resetBtn" aria-label="Home: back to the default view" title="Home">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5.5h4v5.5"/></svg>
       </button>
       <div class="seg" id="period" role="group" aria-label="Period">
@@ -239,8 +248,15 @@ tr:last-child td{border-bottom:0}
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
       <div class="menu" id="menu" role="menu">
+        <button class="mi" id="saveBtn" role="menuitem">Save this view</button>
+        <div class="mform" id="saveForm" hidden>
+          <input id="saveName" maxlength="22" placeholder="Name this view" aria-label="View name" autocomplete="off">
+          <button class="btn" id="saveGo">Save</button>
+        </div>
+        <button class="mi" id="homeSet" role="menuitem">Make this view Home</button>
+        <button class="mi" id="homeClr" role="menuitem" hidden>Use the built-in Home</button>
+        <div class="msep"></div>
         <button class="mi" id="sndBtn" role="menuitemcheckbox" aria-checked="false">Sound off</button>
-        <button class="mi" id="linkBtn" role="menuitem">Copy link</button>
       </div>
     </div>
   </div>
@@ -374,7 +390,7 @@ const TICKETS = buildMockTickets().map(t => {
 
 /* -------------------------------------------------------------------- state */
 const state = {
-  days: new Set([0,1,2,3,4,5,6]), groupBy: 'variety', sort: 'default',
+  days: new Set([0]), groupBy: 'variety', sort: 'default',
   filters: {source:new Set(), grower:new Set(), variety:new Set()},
   drilled: null, selTicket: null, openOrb: null,
   sound: false, show: 'all', table: false
@@ -382,7 +398,7 @@ const state = {
 const $ = s => document.querySelector(s);
 /* two frames later, or 80ms if the tab is not painting */
 function nextFrame(fn){ let done = false; const run = () => { if (!done){ done = true; fn(); } }; requestAnimationFrame(() => requestAnimationFrame(run)); setTimeout(run, 80); }
-const els = {tblBtn:$('#tblBtn'), tableWrap:$('#tableWrap'), resetBtn:$('#resetBtn'), sndBtn:$('#sndBtn'), linkBtn:$('#linkBtn'), days:$('#days'), lens:$('#lens'), orbs:$('#orbs'),  crumbs:$('#crumbs'),  stage:$('#stage'),
+const els = {tblBtn:$('#tblBtn'), tableWrap:$('#tableWrap'), resetBtn:$('#resetBtn'), sndBtn:$('#sndBtn'), days:$('#days'), lens:$('#lens'), orbs:$('#orbs'),  crumbs:$('#crumbs'),  stage:$('#stage'),
   stageIn:$('#stageIn'), deckP:$('#deckP'), deckC:$('#deckC'), pop:$('#pop'), down:$('#downBtn'), downLbl:$('#downLbl'), table:$('#table')};
 
 function scope(except, anyDay){
@@ -547,10 +563,21 @@ function tick(){
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
-    const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
-    o.type = 'triangle'; o.frequency.setValueAtTime(2100, t); o.frequency.exponentialRampToValueAtTime(850, t + .03);
-    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.11, t + .002); g.gain.exponentialRampToValueAtTime(.0001, t + .05);
-    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + .06);
+    /* the flick of a stiff card: a few milliseconds of filtered noise over a soft woody knock */
+    const t = actx.currentTime, len = Math.floor(actx.sampleRate * .03);
+    if (!tick.noise){
+      tick.noise = actx.createBuffer(1, len, actx.sampleRate);
+      const d = tick.noise.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    }
+    const n = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();
+    n.buffer = tick.noise; n.playbackRate.value = .9 + Math.random() * .2;   /* no two flicks quite alike */
+    bp.type = 'bandpass'; bp.frequency.value = 2400; bp.Q.value = .8; ng.gain.value = .22;
+    n.connect(bp); bp.connect(ng); ng.connect(actx.destination); n.start(t);
+    const o = actx.createOscillator(), og = actx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(140, t + .04);
+    og.gain.setValueAtTime(.0001, t); og.gain.exponentialRampToValueAtTime(.09, t + .003); og.gain.exponentialRampToValueAtTime(.0001, t + .05);
+    o.connect(og); og.connect(actx.destination); o.start(t); o.stop(t + .06);
   } catch (e) {}
 }
 glassDrag(els.days, dayLens, dayCells, {
@@ -580,11 +607,13 @@ glassDrag(segEl, segLens, segBtns, {
 /* -------------------------------------------------------------------- orbs */
 const SORTS = [['default','Date','→'], ['name','Name','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑'], ['streif','Streif','↑']];
 const ORBS = [
+  {k:'views', name:'Views', kind:'views'},
   {k:'groupBy', name:'Blades by', kind:'group'},
   {k:'source', name:'Source', kind:'filter'}, {k:'grower', name:'Grower', kind:'filter'}, {k:'variety', name:'Variety', kind:'filter'},
   {k:'sort', name:'Order by', kind:'sort'}
 ];
-const CAPS = [{txt:'Group', row:0, side:0}, {txt:'Filter', row:2, side:1}, {txt:'Order', row:4, side:4}];
+const CAPS = [{txt:'Saved', row:0, side:0}, {txt:'Group', row:1, side:1}, {txt:'Filter', row:3, side:2}, {txt:'Order', row:5, side:5}];
+const SETS = [[0], [1], [2,3,4], [5]];   /* saved views | group | filters | order */
 let PS = 86, OS = 68;
 const parents = {}; let optEls = []; const caps = [];
 function mkOrb(size){
@@ -607,7 +636,7 @@ ORBS.forEach(ob => {
   const o = mkOrb(PS); if (ob.kind === 'group') o.classList.add('lead');
   parents[ob.k] = o; els.orbs.appendChild(o);
   onAct(o, () => { state.openOrb = state.openOrb === ob.k ? null : ob.k; renderOrbs(true); });
-  if (ob.kind !== 'group'){
+  if (ob.kind === 'filter' || ob.kind === 'sort'){
     const x = document.createElement('span');
     x.className = 'o-x'; x.textContent = '×'; x.setAttribute('role','button'); x.tabIndex = 0;
     x.setAttribute('aria-label', ob.kind === 'sort' ? 'Back to default order' : `Clear ${ob.name.toLowerCase()} filter`);
@@ -618,6 +647,11 @@ ORBS.forEach(ob => {
 CAPS.forEach(c => { const e = document.createElement('span'); e.className = 'orb-cap'; e.textContent = c.txt; els.orbs.appendChild(e); caps.push(e); });
 /* options carry a small line (s) and a bold line (b) */
 function orbOptions(ob){
+  if (ob.kind === 'views'){
+    const now = viewString();
+    return loadViews().map(v => ({v:v.q, s:v.name, b:'', on:v.q === now, view:v, say:`View ${v.name}`}))
+      .concat([{v:null, s:'Save current', b:'+', on:false, say:'Save the current view'}]);
+  }
   if (ob.kind === 'group') return Object.keys(DIMS).map(d => ({v:d, s:DIMS[d].label, b:new Set(scope().map(t => t[d])).size, on:state.groupBy === d, say:`Blades by ${DIMS[d].label}`}));
   if (ob.kind === 'sort') return SORTS.map(([v, l, mark]) => ({v, s:l, b:mark, on:state.sort === v, say:`Order by ${l}${v === 'default' ? ', oldest to newest' : v === 'name' ? '' : ', low to high'}`}));
   const f = state.filters[ob.k], inScope = scope(ob.k);
@@ -626,12 +660,20 @@ function orbOptions(ob){
     .concat(vals.map(v => { const n = inScope.filter(t => t[ob.k] === v).length; return {v, s:v, b:n, on:f.has(v), zero:n === 0 && !f.has(v), say:`${v}, ${n} loads`}; }));
 }
 function orbValue(ob){
+  if (ob.kind === 'views'){
+    const vs = loadViews(), now = viewString(), hit = vs.find(v => v.q === now);
+    return {val:hit ? hit.name : vs.length ? String(vs.length) : 'None', on:!!hit};
+  }
   if (ob.kind === 'group') return {val:DIMS[state.groupBy].label, on:false};
   if (ob.kind === 'sort') return {val:SORTS.find(x => x[0] === state.sort)[1], on:state.sort !== 'default'};
   const f = state.filters[ob.k];
   return {val:f.size === 0 ? 'All' : f.size === 1 ? [...f][0] : f.size + ' on', on:f.size > 0};
 }
 function pickOption(ob, cur){
+  if (ob.kind === 'views'){
+    if (cur.v === null){ openSaveForm(); return; }
+    state.openOrb = null; applyView(cur.v); tick(); renderOrbs(true); render(); return;
+  }
   if (ob.kind === 'group'){ if (state.groupBy !== cur.v){ state.groupBy = cur.v; closeChild(); state.drilled = null; state.selTicket = null; } }
   else if (ob.kind === 'sort') state.sort = cur.v;
   else {
@@ -650,10 +692,10 @@ function orbLayout(){
   const P = [], O = [], C = []; let H;
   if (!side){
     /* one row: group | three filters | order */
-    PS = W < 560 ? 62 : 84; OS = W < 560 ? 56 : 68;
-    const g = 6, G2 = Math.max(6, Math.min(50, (W - 5*PS - 2*g) / 2)), G1 = G2;
-    const x0 = (W - (5*PS + G1 + G2 + 2*g)) / 2;
-    [0, PS + G1, 2*PS + G1 + g, 3*PS + G1 + 2*g, 4*PS + G1 + G2 + 2*g].forEach((x, i) => P[i] = {x:x0 + x, y:20});
+    PS = W < 560 ? 52 : 80; OS = W < 560 ? 56 : 68;
+    const g = W < 560 ? 4 : 6, G = Math.max(6, Math.min(44, (W - 6*PS - 2*g) / 3));
+    let x = (W - (6*PS + 2*g + 3*G)) / 2;
+    SETS.forEach(set => { set.forEach((i, j) => { P[i] = {x, y:20}; x += PS + (j < set.length - 1 ? g : 0); }); x += G; });
     CAPS.forEach(c => C.push({x:P[c.row].x + PS/2, y:0}));
     const step = Math.min(OS + 8, (W - OS) / Math.max(1, n-1));
     list.forEach((op, j) => {
@@ -662,12 +704,12 @@ function orbLayout(){
     });
     H = n ? 20 + PS + 22 + OS + 10 : 20 + PS + 6;
   } else {
-    PS = 80; OS = 60;
+    PS = 72; OS = 60;
     const cols = 3, cell = OS + 6; let y = 0;
     ORBS.forEach((ob, i) => {
       const cap = CAPS.findIndex(c => c.side === i);
-      if (cap >= 0){ if (i) y += 6; C[cap] = {x:W/2, y}; y += 20; }
-      P[i] = {x:(W - PS)/2, y}; y += PS + 12;
+      if (cap >= 0){ if (i) y += 4; C[cap] = {x:W/2, y}; y += 19; }
+      P[i] = {x:(W - PS)/2, y}; y += PS + 9;
       if (i === oi){
         list.forEach((op, j) => {
           const r = Math.floor(j / cols), inRow = Math.min(cols, n - r*cols), c = j - r*cols;
@@ -706,6 +748,13 @@ function renderOrbs(animate){
       els.orbs.appendChild(el);
       nextFrame(() => { el.style.opacity = 1; el.style.transform = to; });
       onAct(el, () => pickOption(ob, orbOptions(ob)[j]));
+      if (op.view){
+        const x = document.createElement('span');
+        x.className = 'o-x del'; x.textContent = '×'; x.setAttribute('role','button'); x.tabIndex = 0;
+        x.setAttribute('aria-label', `Delete view ${op.view.name}`);
+        el.appendChild(x);
+        onAct(x, () => { if (confirm(`Delete the view "${op.view.name}"?`)){ saveViews(loadViews().filter(v => v.name !== op.view.name)); renderOrbs(true); } });
+      }
     } else if (el.style.opacity === '1') el.style.transform = to;
     el.children[0].textContent = op.s; el.children[1].textContent = op.b;
     el.classList.toggle('on', op.on); el.classList.toggle('zero', !!op.zero);
@@ -1153,37 +1202,52 @@ function render(){
   els.resetBtn.classList.toggle('live', !isDefault());
   writeURL();
 }
-/* default view: last seven days, blades by variety, nothing filtered, opened or selected */
-function isDefault(){
-  const r = dayRange();
-  return r.i0 === 0 && r.i1 === 6 && state.groupBy === 'variety' && state.sort === 'default' && state.show === 'all'
-    && state.drilled === null && !state.selTicket && !state.table && Object.values(state.filters).every(f => f.size === 0);
-}
-function resetView(){
-  closeChild(); setDays(0, 6);
-  state.groupBy = 'variety'; state.sort = 'default'; state.show = 'all'; state.table = false; state.drilled = null; state.selTicket = null; state.openOrb = null;
-  Object.values(state.filters).forEach(f => f.clear());
-  els.resetBtn.classList.remove('go'); void els.resetBtn.offsetWidth; els.resetBtn.classList.add('go');
-  tick(); renderOrbs(true); render();
-}
-/* the view lives in the address bar, so a link reopens exactly what you were looking at */
-function writeURL(){
+/* ---------------------------------------------------------- saved views and Home
+   A view is the period, grouping, order, measure and filters, written the same way as the link.
+   Days are stored relative to today, so "Today" still means today tomorrow. Kept on this device. */
+const BUILTIN_HOME = 'days=6-6&by=variety';
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v){ try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const loadViews = () => store.get('fd-views', []).filter(v => v && v.name && v.q);
+const saveViews = vs => store.set('fd-views', vs);
+const homeView = () => store.get('fd-home', null) || BUILTIN_HOME;
+function viewParams(){
   const r = dayRange(), q = new URLSearchParams();
   q.set('days', r.i0 + '-' + r.i1); q.set('by', state.groupBy);
   if (state.sort !== 'default') q.set('sort', state.sort);
   if (state.show !== 'all') q.set('show', state.show);
+  for (const k in state.filters) if (state.filters[k].size) q.set(k, [...state.filters[k]].sort().join('|'));
+  return q;
+}
+const viewString = () => viewParams().toString();
+function applyView(str){ closeChild(); readParams(new URLSearchParams(str)); }
+function isDefault(){ return viewString() === homeView() && state.drilled === null && !state.selTicket && !state.table; }
+function resetView(){
+  state.openOrb = null; applyView(homeView());
+  els.resetBtn.classList.remove('go'); void els.resetBtn.offsetWidth; els.resetBtn.classList.add('go');
+  tick(); renderOrbs(true); render();
+}
+function suggestName(){
+  const r = dayRange(), n = r.i1 - r.i0 + 1;
+  const when = r.i1 === 6 ? (n === 1 ? 'Today' : n + ' days') : dayCells[r.i0]._label.split(' ')[0] + (n > 1 ? '+' : '');
+  const f = Object.values(state.filters).flatMap(x => [...x]);
+  return (when + ' ' + (f.length ? f.join(' ') : DIMS[state.groupBy].label)).slice(0, 22);
+}
+/* the view lives in the address bar, so a link reopens exactly what you were looking at */
+function writeURL(){
+  const q = viewParams();
   if (state.table) q.set('table', '1');
-  for (const k in state.filters) if (state.filters[k].size) q.set(k, [...state.filters[k]].join('|'));
   if (state.drilled !== null) q.set('open', state.drilled);
   if (state.selTicket) q.set('ticket', state.selTicket.id);
   try { history.replaceState(null, '', '#' + q.toString()); } catch (e) {}
 }
-function readURL(){
-  const q = new URLSearchParams(location.hash.slice(1));
+function readParams(q){
   const d = /^([0-6])-([0-6])$/.exec(q.get('days') || '');
   if (d && +d[1] <= +d[2]) setDays(+d[1], +d[2]);
   if (DIMS[q.get('by')]) state.groupBy = q.get('by');
-  if (['name','p','st','ss','streif'].includes(q.get('sort'))) state.sort = q.get('sort');
+  state.sort = ['name','p','st','ss','streif'].includes(q.get('sort')) ? q.get('sort') : 'default';
   state.show = KEYS.includes(q.get('show')) ? q.get('show') : 'all';
   state.table = q.get('table') === '1';
   for (const k in state.filters){
@@ -1193,12 +1257,36 @@ function readURL(){
   state.drilled = q.has('open') ? q.get('open') : null;
   state.selTicket = TICKETS.find(t => String(t.id) === q.get('ticket')) || null;
 }
+/* a link wins; with no link the page opens on Home */
+function readURL(){ readParams(new URLSearchParams(location.hash.length > 1 ? location.hash.slice(1) : homeView())); }
 addEventListener('hashchange', () => { closeChild(); readURL(); render(); });
 const menuBtn = $('#menuBtn'), menu = $('#menu');
-function setMenu(open){ menu.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open); }
+function setMenu(open){
+  menu.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open);
+  if (!open) $('#saveForm').hidden = true;
+  $('#homeClr').hidden = homeView() === BUILTIN_HOME;
+}
 menuBtn.addEventListener('click', e => { e.stopPropagation(); setMenu(!menu.classList.contains('open')); });
 menu.addEventListener('click', e => e.stopPropagation());
 document.addEventListener('click', () => setMenu(false));
+const saveForm = $('#saveForm'), saveName = $('#saveName'), homeSet = $('#homeSet'), homeClr = $('#homeClr');
+function openSaveForm(){
+  state.openOrb = null; renderOrbs(true); setMenu(true);
+  saveForm.hidden = false; saveName.value = suggestName();
+  setTimeout(() => { saveName.focus(); saveName.select(); }, 60);
+}
+function commitSave(){
+  const name = saveName.value.trim().slice(0, 22); if (!name){ saveName.focus(); return; }
+  saveViews(loadViews().filter(v => v.name !== name).concat([{name, q:viewString()}]));   /* same name replaces */
+  saveForm.hidden = true; setMenu(false); tick();
+  state.openOrb = 'views'; renderOrbs(true);   /* show where it landed */
+}
+$('#saveBtn').addEventListener('click', () => { if (saveForm.hidden) openSaveForm(); else saveForm.hidden = true; });
+$('#saveGo').addEventListener('click', commitSave);
+saveName.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') commitSave(); if (e.key === 'Escape'){ saveForm.hidden = true; setMenu(false); } });
+function flash(btn, txt){ const was = btn.textContent; btn.textContent = txt; setTimeout(() => { btn.textContent = was; setMenu(false); }, 900); }
+homeSet.addEventListener('click', () => { store.set('fd-home', viewString()); tick(); render(); flash(homeSet, 'Home updated'); });
+homeClr.addEventListener('click', () => { store.set('fd-home', null); tick(); render(); flash(homeClr, 'Built-in Home restored'); });
 els.down.addEventListener('click', e => { e.stopPropagation(); down(); });
 ['pointerdown','pointerup'].forEach(t => { els.down.addEventListener(t, e => e.stopPropagation()); els.pop.addEventListener(t, e => e.stopPropagation()); });
 els.pop.addEventListener('click', e => e.stopPropagation());
@@ -1211,15 +1299,6 @@ els.sndBtn.addEventListener('click', () => {
   state.sound = !state.sound;
   try { localStorage.setItem('fd-sound', state.sound ? '1' : '0'); } catch (e) {}
   tick(); render();
-});
-els.linkBtn.addEventListener('click', async () => {
-  let ok = false;
-  try { await navigator.clipboard.writeText(location.href); ok = true; }
-  catch (e) {
-    try { const ta = document.createElement('textarea'); ta.value = location.href; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) {}
-  }
-  els.linkBtn.textContent = ok ? 'Link copied' : 'Copy from address bar';
-  setTimeout(() => { els.linkBtn.textContent = 'Copy link'; }, 1800);
 });
 try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
