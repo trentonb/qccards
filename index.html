@@ -157,12 +157,14 @@ button,select{font:inherit;color:inherit}
 .wh{position:relative;display:block;height:5px;width:100%;border-radius:3px;background:color-mix(in srgb,currentColor 22%,transparent)}
 .wh i{position:absolute;top:0;bottom:0;border-radius:3px;background:currentColor;opacity:.85}
 /* one-measure mode: a single large value, the other two as small pills */
-.chip.big{padding:6px 8px 7px}
-.chip.big b{font-size:36px;grid-column:1 / -1}
+/* cards never overlap in this mode, so the big value can sit dead centre */
+.chip.big{padding:6px 8px 7px;justify-items:center;text-align:center}
+.chip.big small{justify-self:center}
+.chip.big b{font-size:36px;grid-column:1 / -1;justify-self:center}
 .chip.big .sp{grid-column:1 / -1;height:22px;margin-top:5px}
 .chip.big .wh{grid-column:1 / -1;margin-top:7px}
 .mrow{display:flex;gap:4px}
-.mchip{flex:1;border-radius:7px;font-size:11px;font-weight:600;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mchip{flex:1 1 0;min-width:0;border-radius:7px;font-size:11px;font-weight:600;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 .seg.small button{min-height:34px;padding:4px 13px}
 
 /* ticket detail: rises out of the top of the selected load's card */
@@ -429,7 +431,7 @@ function spark(k, series){
   const pts = series.map((v, i) => v === null ? null : [i, v]).filter(Boolean);
   if (pts.length < 2) return '<svg class="sp" viewBox="0 0 48 12"></svg>';
   const vs = pts.map(q => q[1]), mid = (Math.min(...vs) + Math.max(...vs)) / 2, half = Math.max((Math.max(...vs) - Math.min(...vs)) / 2, MINSPAN[k] / 2);
-  const xy = pts.map(([i, v]) => [(1.5 + i / 6 * 45).toFixed(1), (11 - (v - (mid - half)) / (2 * half) * 10).toFixed(1)]);
+  const xy = pts.map(([i, v]) => [(3 + i / 6 * 42).toFixed(1), (10 - (v - (mid - half)) / (2 * half) * 8).toFixed(1)]);
   const e = xy[xy.length - 1];
   return `<svg class="sp" viewBox="0 0 48 12" preserveAspectRatio="none"><polyline points="${xy.map(q => q.join(',')).join(' ')}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" opacity=".8" vector-effect="non-scaling-stroke"/><circle cx="${e[0]}" cy="${e[1]}" r="1.8" fill="currentColor"/></svg>`;
 }
