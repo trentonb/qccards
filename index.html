@@ -228,6 +228,8 @@ button,select{font:inherit;color:inherit}
 .sp{display:block;width:100%;height:18px;overflow:visible}
 .wh{position:relative;display:block;height:5px;width:100%;border-radius:3px;background:color-mix(in srgb,currentColor 22%,transparent)}
 .wh i{position:absolute;top:0;bottom:0;border-radius:3px;background:currentColor;opacity:.85}
+.wh i.rg{opacity:.32}
+.pm{font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;margin-left:5px;opacity:.9}
 /* one-measure mode: a single large value, the other two as small pills */
 /* cards never overlap in this mode, so the big value can sit dead centre */
 .chip.big{padding:6px 8px 7px;justify-items:center;text-align:center}
@@ -248,13 +250,36 @@ button,select{font:inherit;color:inherit}
 .pop.on{opacity:1;pointer-events:auto;transform:none;-webkit-clip-path:circle(160% at var(--ox,50%) 100%);clip-path:circle(160% at var(--ox,50%) 100%)}
 .pop.done{-webkit-clip-path:none;clip-path:none;box-shadow:0 14px 34px rgba(0,0,0,.30)}
 .pop-stem{position:absolute;top:100%;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:0 0 2px 2px}
-.pop-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding-right:30px}
-.pop-t{font-size:1.3em;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
-.pop-m{line-height:1.35}
-.pop-r{display:grid;grid-template-columns:6.4em minmax(0,1fr) 3em;align-items:center;gap:10px;margin-top:6px}
-.pop-r small{display:block;font-size:.85em;color:var(--ink-3)}
-.pop-v{text-align:right;font-size:1.25em;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
-.pop-n{margin:8px 0 0;font-size:.85em;color:var(--ink-3)}
+/* compact (phone): title, facts as a wrapping line, then the measures */
+.pop-t{font-size:1.35em;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;padding-right:34px}
+.pop-dl{margin:4px 0 2px;display:flex;flex-wrap:wrap;gap:2px 12px}
+.pop-dl div{display:flex;gap:5px;align-items:baseline}
+.pop-dl dt{font-size:.82em;color:var(--ink-3)}
+.pop-dl dd{margin:0;color:var(--ink);font-variant-numeric:tabular-nums}
+.pop-r{display:grid;grid-template-columns:6.2em minmax(0,1fr) 4.6em;align-items:center;gap:10px;margin-top:6px}
+.pop-r small{display:block;font-size:.8em;font-weight:400;color:var(--ink-3)}
+.pop-v{text-align:right;font-size:1.3em;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.15}
+.pop-v small{font-size:.58em}
+.pop-n{margin:8px 0 0;font-size:.82em;color:var(--ink-3)}
+/* roomy (tablet, desktop): two columns, bigger type, taller sample strips */
+.pop.wide{padding:20px 24px 18px;border-radius:20px}
+.pop.wide .pop-grid{display:grid;grid-template-columns:minmax(190px,250px) minmax(0,1fr);gap:30px;align-items:start}
+.pop.wide .pop-t{font-size:1.75em;letter-spacing:-.01em;margin-bottom:10px}
+.pop.wide .pop-dl{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin:0}
+.pop.wide .pop-dl div{display:block}
+.pop.wide .pop-dl div:nth-child(6){grid-column:1 / -1}
+.pop.wide .pop-dl dt{font-size:.74em;letter-spacing:.05em;text-transform:uppercase;margin-bottom:1px}
+.pop.wide .pop-dl dd{font-size:1.05em;font-weight:600}
+.pop.wide .pop-main{padding-right:30px}
+/* each measure: name and value on one line, the sample strip full width beneath it */
+.pop.wide .pop-r{grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;margin-top:0;padding:10px 0 8px;border-top:1px solid var(--line)}
+.pop.wide .pop-r svg{grid-column:1 / -1;grid-row:2}
+.pop.wide .pop-r:first-child{border-top:0;padding-top:2px}
+.pop.wide .pop-l{font-size:1.02em;color:var(--ink);font-weight:600}
+.pop.wide .pop-v{font-size:1.75em;display:flex;flex-direction:row-reverse;align-items:baseline;gap:10px}
+.pop.wide .pop-v small{font-size:.45em}
+.pop.wide .pop-l small{display:inline;margin-left:6px}
+.pop.wide .pop-n{margin-top:10px}
 .pop-x{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line-2);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;cursor:pointer;padding:0;color:var(--ink-2)}
 /* go back down a level */
 .down{position:absolute;left:50%;bottom:6px;z-index:30;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 12px;border-radius:999px;cursor:pointer;font-size:13px;color:var(--ink);border:1px solid var(--line-2);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);box-shadow:var(--shadow);transform:translate(-50%,14px);opacity:0;pointer-events:none;transition:transform .4s cubic-bezier(.3,1.5,.5,1),opacity .25s;-webkit-tap-highlight-color:transparent}
@@ -471,14 +496,15 @@ function buildMockTickets(){
   return out;
 }
 const mean = a => a.reduce((x,y) => x+y, 0) / a.length;
+/* sample standard deviation (n - 1); 0 when there is only one value */
+const stdev = a => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
+/* per load: the average and the spread of its sampled fruit */
+function derive(t){ t.sd = {}; KEYS.forEach(k => { t[k] = mean(t.samples[k]); t.sd[k] = stdev(t.samples[k]); }); return t; }
 /* The one place data comes from. Swap the body for a fetch of the real feed; everything else only sees TICKETS. */
 async function loadTickets(){
-  return buildMockTickets().map(t => { KEYS.forEach(k => t[k] = mean(t.samples[k])); return t; });
+  return buildMockTickets().map(derive);
 }
-let TICKETS = buildMockTickets().map(t => {
-  KEYS.forEach(k => t[k] = mean(t.samples[k]));
-  return t;
-});
+let TICKETS = buildMockTickets().map(derive);
 
 /* -------------------------------------------------------------------- state */
 const state = {
@@ -506,7 +532,8 @@ function scope(except, anyDay){
 }
 function summarize(ts){
   const o = {n: ts.length, bins: ts.reduce((a,t) => a+t.bins, 0)};
-  KEYS.forEach(k => o[k] = ts.length ? mean(ts.map(t => t[k])) : NaN);
+  o.sd = {};   /* for a group: how much its loads' averages differ from each other */
+  KEYS.forEach(k => { o[k] = ts.length ? mean(ts.map(t => t[k])) : NaN; o.sd[k] = stdev(ts.map(t => t[k])); });
   return o;
 }
 /* daily mean per metric over the last seven days, oldest first; null where no loads */
@@ -539,14 +566,15 @@ function tone(k, v){
   return `background:${r.f[i]};color:${r.i[i]}`;
 }
 const BIGTAG = {p:'P · lb', st:'St · 1–6', ss:'SS · °Bx'};
-function chip(k, v, extra, big){
-  return `<span class="chip${big ? ' big' : ''}" style="${tone(k, v)}"><small>${big ? BIGTAG[k] : METRICS[k].tag}</small><b>${v.toFixed(1)}</b>${extra || ''}</span>`;
+function chip(k, v, extra, big, sd){
+  const pm = sd > 0 ? `<i class="pm">±${sd.toFixed(1)}</i>` : '';
+  return `<span class="chip${big ? ' big' : ''}" style="${tone(k, v)}"><small>${big ? BIGTAG[k] : METRICS[k].tag}${pm}</small><b>${v.toFixed(1)}</b>${extra || ''}</span>`;
 }
 /* all three measures, or one large with the other two as pills */
 function chipSet(o, extraOf){
   const f = state.show;
-  if (f === 'all') return `<span class="chips">${KEYS.map(k => chip(k, o[k], extraOf(k))).join('')}</span>`;
-  return `<span class="chips">${chip(f, o[f], extraOf(f), true)}<span class="mrow">${KEYS.filter(k => k !== f).map(k => `<span class="mchip" style="${tone(k, o[k])}"><small>${METRICS[k].tag}</small>${o[k].toFixed(1)}</span>`).join('')}</span></span>`;
+  if (f === 'all') return `<span class="chips">${KEYS.map(k => chip(k, o[k], extraOf(k), false, o.sd[k])).join('')}</span>`;
+  return `<span class="chips">${chip(f, o[f], extraOf(f), true, o.sd[f])}<span class="mrow">${KEYS.filter(k => k !== f).map(k => `<span class="mchip" style="${tone(k, o[k])}"><small>${METRICS[k].tag}</small>${o[k].toFixed(1)}</span>`).join('')}</span></span>`;
 }
 const MINSPAN = {p:1.6, st:1.2, ss:1.2};
 function spark(k, series){
@@ -557,13 +585,14 @@ function spark(k, series){
   const e = xy[xy.length - 1];
   return `<svg class="sp" viewBox="0 0 48 12" preserveAspectRatio="none"><polyline points="${xy.map(q => q.join(',')).join(' ')}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" opacity=".8" vector-effect="non-scaling-stroke"/><circle cx="${e[0]}" cy="${e[1]}" r="1.8" fill="currentColor"/></svg>`;
 }
-function whisker(k, vals){
+/* spread glyph: the light bar is lowest to highest fruit, the solid bar is the average plus and minus one SD */
+function whisker(k, vals, avg, sd){
   const d = METRICS[k].dom, f = v => Math.max(0, Math.min(100, (v - d[0]) / (d[1] - d[0]) * 100));
-  const a = f(Math.min(...vals)), b = f(Math.max(...vals));
-  return `<span class="wh"><i style="left:${a.toFixed(1)}%;width:${Math.max(4, b - a).toFixed(1)}%"></i></span>`;
+  const a = f(Math.min(...vals)), b = f(Math.max(...vals)), c = f(avg - sd), e = f(avg + sd);
+  return `<span class="wh"><i class="rg" style="left:${a.toFixed(1)}%;width:${Math.max(4, b - a).toFixed(1)}%"></i><i style="left:${c.toFixed(1)}%;width:${Math.max(3, e - c).toFixed(1)}%"></i></span>`;
 }
 const groupChips = g => chipSet(g, k => state.groupBy === 'day' ? '' : spark(k, g.trend[k]));
-const loadChips = t => chipSet(t, k => whisker(k, t.samples[k]));
+const loadChips = t => chipSet(t, k => whisker(k, t.samples[k], t[k], t.sd[k]));
 
 /* ------------------------------------------------------------ days, legend */
 /* days are a contiguous window; strip index 0 is six days ago, 6 is today */
@@ -1061,7 +1090,8 @@ function strip(k, t, g){
   const mode = isDark() ? m.dark : m.light;
   let h = `<svg viewBox="0 0 ${W} 30" width="100%" role="img" aria-label="${m.name} samples">` +
     `<rect x="${x(m.band[0])}" y="3" width="${x(m.band[1]) - x(m.band[0])}" height="24" rx="4" fill="${mode.f[1]}" opacity=".4"/>` +
-    `<line x1="8" x2="${W-8}" y1="15" y2="15" stroke="var(--line-2)" stroke-width="1"/>`;
+    `<line x1="8" x2="${W-8}" y1="15" y2="15" stroke="var(--line-2)" stroke-width="1"/>` +
+    `<line x1="${x(Math.max(m.dom[0], t[k] - t.sd[k])).toFixed(1)}" x2="${x(Math.min(m.dom[1], t[k] + t.sd[k])).toFixed(1)}" y1="15" y2="15" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" opacity=".45"><title>±1 SD: ${(t[k] - t.sd[k]).toFixed(1)} to ${(t[k] + t.sd[k]).toFixed(1)}</title></line>`;
   t.samples[k].forEach((v, i) => h += `<circle cx="${x(v).toFixed(1)}" cy="15" r="4.5" fill="${m.dot}" stroke="var(--surface)" stroke-width="1.5"><title>Sample ${i+1}: ${v.toFixed(1)} ${m.unit}</title></circle>`);
   if (g) h += `<line x1="${x(g[k]).toFixed(1)}" x2="${x(g[k]).toFixed(1)}" y1="2" y2="28" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="3 3"><title>${g.label} average: ${g[k].toFixed(1)}</title></line>`;
   h += `<line x1="${x(t[k]).toFixed(1)}" x2="${x(t[k]).toFixed(1)}" y1="1" y2="29" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -1070,17 +1100,23 @@ function strip(k, t, g){
 /* fills the ticket pop-up and returns its height in real pixels (0 when no ticket is open) */
 function fillPop(t, g, narrow){
   if (!t){ els.pop.classList.remove('on', 'done'); els.pop._for = null; return 0; }
-  const z = Math.max(1, Math.min(1.35, stageS / 1.3));   /* grows with the deck on big screens */
-  els.pop.style.width = Math.min(els.stage.clientWidth - 12, narrow ? 380 : Math.round(540 * z)) + 'px';
-  els.pop.style.fontSize = (13.5 * (narrow ? 1 : z)).toFixed(1) + 'px';
+  /* phones get a compact card; tablets and desktops a roomy sheet: facts on the left, the three measures on the right */
+  const W = els.stage.clientWidth, wide = !narrow && W >= 640;
+  const z = Math.max(1, Math.min(1.25, stageS / 1.3));   /* grows with the deck on big screens */
+  els.pop.classList.toggle('wide', wide);
+  els.pop.style.width = (wide ? Math.min(W - 24, Math.round(880 * z)) : Math.min(W - 12, 400)) + 'px';
+  els.pop.style.fontSize = (wide ? 15 * z : 13.5).toFixed(1) + 'px';
+  const facts = [['Lot', t.lot], ['Grower', t.grower], ['Source', t.source], ['Variety', t.variety], ['Block', t.block.replace('Block ', '')],
+    ['Received', `${t.day} · ${t.time}`], ['Bins', t.bins], ['Fruit tested', t.samples.p.length]];
+  const rows = KEYS.map(k => {
+    const m = METRICS[k], v = t.samples[k];
+    return `<div class="pop-r"><span class="pop-l">${m.name}<small>${m.unit}</small></span>${strip(k, t, g)}<span class="pop-v">${t[k].toFixed(1)}<small>SD ${t.sd[k].toFixed(2)} · ${Math.min(...v).toFixed(1)} – ${Math.max(...v).toFixed(1)}</small></span></div>`;
+  }).join('');
   els.pop.innerHTML =
     `<button class="pop-x" id="popX" aria-label="Close ticket">×</button>` +
-    `<div class="pop-h"><span class="pop-t">Ticket ${t.id}</span><span class="pop-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} ${t.time} · ${t.bins} bins</span></div>` +
-    KEYS.map(k => {
-      const m = METRICS[k], v = t.samples[k];
-      return `<div class="pop-r"><span>${m.name}<small>${Math.min(...v).toFixed(1)}–${Math.max(...v).toFixed(1)} ${m.unit}</small></span>${strip(k, t, g)}<span class="pop-v">${t[k].toFixed(1)}</span></div>`;
-    }).join('') +
-    `<p class="pop-n">Dots are individual fruit · solid tick is this load · dashed tick is the ${g.label} average · band is a placeholder target.</p>` +
+    `<div class="pop-grid"><div class="pop-side"><div class="pop-t">Ticket ${t.id}</div>` +
+    `<dl class="pop-dl">${facts.map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join('')}</dl></div>` +
+    `<div class="pop-main">${rows}<p class="pop-n">Dots are individual fruit · solid tick is this load's average · thick bar is ±1 SD · dashed tick is the ${g.label} average · band is a placeholder target.</p></div></div>` +
     `<span class="pop-stem" id="popStem"></span>`;
   $('#popX').addEventListener('click', e => { e.stopPropagation(); down(); });
   return els.pop.offsetHeight;
@@ -1126,7 +1162,8 @@ function renderDown(){
 const COLS = [
   {k:'id', t:'Ticket', v:t => t.id}, {k:'lot', t:'Lot', v:t => +t.lot}, {k:'ts', t:'Received', v:t => t.ts, show:t => `${t.day} ${t.time}`},
   {k:'grower', t:'Grower', v:t => t.grower}, {k:'source', t:'Source', v:t => t.source}, {k:'variety', t:'Variety', v:t => t.variety},
-  {k:'bins', t:'Bins', v:t => t.bins, num:true}, {k:'p', t:'Pressure', v:t => t.p, num:true, dp:1}, {k:'st', t:'Starch', v:t => t.st, num:true, dp:1}, {k:'ss', t:'SS', v:t => t.ss, num:true, dp:1}
+  {k:'bins', t:'Bins', v:t => t.bins, num:true}, {k:'p', t:'Pressure', v:t => t.p, num:true, dp:1}, {k:'st', t:'Starch', v:t => t.st, num:true, dp:1}, {k:'ss', t:'SS', v:t => t.ss, num:true, dp:1},
+  {k:'psd', t:'P SD', v:t => t.sd.p, num:true, dp:2}, {k:'stsd', t:'St SD', v:t => t.sd.st, num:true, dp:2}, {k:'sssd', t:'SS SD', v:t => t.sd.ss, num:true, dp:2}
 ];
 let tableSort = null;   /* {k, dir}; until a header is clicked the table follows the Order orb */
 function renderTable(){
@@ -1159,7 +1196,7 @@ function renderLens(){
     return;
   }
   els.lens.innerHTML = `<span class="l-n">${L.name}</span><span class="l-m">${L.meta}</span>` +
-    KEYS.map(k => `<span class="pill" style="${tone(k, L.o[k])}"><small>${METRICS[k].tag}</small>${L.o[k].toFixed(1)}</span>`).join('');
+    KEYS.map(k => `<span class="pill" style="${tone(k, L.o[k])}"><small>${METRICS[k].tag}</small>${L.o[k].toFixed(1)}${L.o.sd && L.o.sd[k] > 0 ? `<small class="pm">±${L.o.sd[k].toFixed(1)}</small>` : ''}</span>`).join('');
 }
 function setHot(el, feedback){
   if (el === hot) return;
