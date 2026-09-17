@@ -141,48 +141,49 @@ button,select{font:inherit;color:inherit}
 .lens .pill small{font-weight:400;font-size:11px;margin-right:4px;opacity:.85}
 @keyframes pop{from{transform:scale(.8)}to{transform:scale(1)}}
 
-/* stage + blades */
-.stage{position:relative;overflow:hidden;height:530px;transition:height .7s cubic-bezier(.3,.8,.2,1);margin-top:0;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.stage-in{position:absolute;left:50%;top:0;width:var(--dw,840px);height:660px;margin-left:calc(var(--dw,840px) / -2);transform-origin:50% 0;transform:scale(var(--s,1));transition:transform .6s cubic-bezier(.3,.8,.2,1)}
-.deck{position:absolute;left:50%;top:0;width:0;height:0;transition:transform .7s cubic-bezier(.3,.8,.2,1)}
+/* stage + cards: a shallow arc around a pivot far below the screen, so every card stays nearly upright */
+.stage{position:relative;overflow:hidden;height:320px;transition:height .7s cubic-bezier(.3,.8,.2,1);margin-top:0;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.stage-in{position:absolute;left:50%;top:0;width:var(--dw,860px);height:520px;margin-left:calc(var(--dw,860px) / -2);transform-origin:50% 0;transform:scale(var(--s,1));transition:transform .6s cubic-bezier(.3,.8,.2,1)}
+.deck{position:absolute;left:50%;top:0;width:0;height:0;--R:1300px;transition:transform .7s cubic-bezier(.3,.8,.2,1)}
 #deckC{z-index:5}
-.blade{position:absolute;bottom:-14px;padding:4px;display:flex;flex-direction:column;gap:3px;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% calc(100% - 14px);--a:0deg;--lift:0px;transform:rotate(var(--a)) translateY(var(--lift));transition:transform .65s cubic-bezier(.25,.9,.3,1.12),opacity .4s,border-color .2s;-webkit-tap-highlight-color:transparent}
-.blade.group{width:64px;height:470px;left:-32px;padding:5px;border-radius:12px}
-.blade.load{width:56px;height:364px;left:-28px;padding:4px;border-radius:11px}
+/* a crowded deck keeps its cards readable and runs off the sides instead; drag to spin it */
+.deck.spin .blade{transition:opacity .4s,border-color .2s,box-shadow .2s}
+.stage.ovf{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);cursor:grab}
+.blade{position:absolute;bottom:0;width:96px;height:206px;left:-48px;display:flex;flex-direction:column;gap:4px;padding:7px 6px 6px;background:var(--surface);border:1px solid var(--line-2);border-radius:13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% 100%;--a:0deg;--lift:0px;--sc:1;transform:translateY(var(--R)) rotate(var(--a)) translateY(calc(var(--lift) - var(--R))) scale(var(--sc));transition:transform .5s cubic-bezier(.25,.9,.3,1.1),opacity .4s,border-color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.blade.load{width:90px;left:-45px}
 .blade.enter{opacity:0}
-.blade.hot{--lift:-14px;z-index:500!important;border-color:var(--ink-2)}
-.blade.sel,.blade.sel.hot{--lift:-26px;border-color:var(--ink);border-width:1.5px}
-.blade.up{border-color:var(--ink);border-width:1.5px}
-.blade.dim{opacity:.6}
+.blade.hot{--lift:-16px;--sc:1.14;z-index:500!important;border-color:var(--ink-2);box-shadow:0 12px 30px rgba(0,0,0,.28)}
+.blade.sel,.blade.sel.hot{--lift:-24px;--sc:1.1;border-color:var(--ink);border-width:1.5px}
+.blade.up{--lift:-12px;border-color:var(--ink);border-width:2px}
+.blade.dim{opacity:.55}
 .blade.dim.hot{opacity:1}
-.b-name{height:120px;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font-size:15px;font-weight:650;letter-spacing:.01em;white-space:nowrap;overflow:hidden}
-.b-name span{display:inline-block;transition:transform .4s}
-.blade.flip .b-name span,.blade.flip .b-stem span{transform:rotate(180deg)}
-.b-name b{display:block;font-weight:650}
-.b-name i{display:block;font-style:normal;font-size:11px;font-weight:400;color:var(--ink-2);line-height:1.15}
-/* stem label hugs the edge that neighbours never cover */
-.b-stem{position:absolute;left:3px;bottom:44px;height:84px;width:16px;writing-mode:vertical-rl;display:flex;align-items:center;font-size:11px;color:var(--ink-2);white-space:nowrap;overflow:hidden}
-.b-stem span{display:inline-block;transition:transform .4s}
-/* trend line (group chips) and min-max whisker (load chips) */
-.sp{display:block;width:calc(100% - 7px);height:12px;margin-top:2px;overflow:visible}
-.wh{position:relative;display:block;height:4px;width:calc(100% - 6px);margin-top:4px;border-radius:2px;background:color-mix(in srgb,currentColor 22%,transparent)}
-.wh i{position:absolute;top:0;bottom:0;border-radius:2px;background:currentColor;opacity:.85}
+.blade.picked{border-color:var(--ink);border-width:1.5px}
+.c-name{font-size:13px;font-weight:650;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-sub{font-size:11px;color:var(--ink-2);line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.c-top{display:flex;justify-content:space-between;align-items:baseline;gap:4px}
+.c-id{font-size:16px;font-weight:700;line-height:18px;font-variant-numeric:tabular-nums}
+/* values sit on the left of each chip: when cards overlap, the left edge is the part that stays visible */
+.chips{margin-top:auto;display:flex;flex-direction:column;gap:4px}
+.chip{border-radius:9px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:6px;padding:4px 7px 5px;line-height:1;font-variant-numeric:tabular-nums}
+.chip small{grid-column:1 / -1;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.8;margin-bottom:2px}
+.chip b{font-size:21px;font-weight:700;letter-spacing:-.02em}
+.load .chip b{font-size:20px}
+.sp{display:block;width:100%;height:16px;overflow:visible}
+.wh{position:relative;display:block;height:5px;width:100%;border-radius:3px;background:color-mix(in srgb,currentColor 22%,transparent)}
+.wh i{position:absolute;top:0;bottom:0;border-radius:3px;background:currentColor;opacity:.85}
+/* one-measure mode: a single large value, the other two as small pills */
+.chip.big{padding:6px 8px 7px}
+.chip.big b{font-size:36px;grid-column:1 / -1}
+.chip.big .sp{grid-column:1 / -1;height:22px;margin-top:5px}
+.chip.big .wh{grid-column:1 / -1;margin-top:7px}
+.mrow{display:flex;gap:4px}
+.mchip{flex:1;border-radius:7px;font-size:11px;font-weight:600;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
 /* compare badges */
 .cb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:12px;font-weight:700;flex:none}
 .cb.b{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
 .blade .cb{position:absolute;top:-11px;left:50%;margin-left:-11px;z-index:3;animation:pop .3s cubic-bezier(.3,1.7,.5,1)}
 .blade .cb.b{background:var(--surface)}
-.blade.picked{border-color:var(--ink);border-width:1.5px}
-.b-n{font-size:12px;color:var(--ink-2);text-align:center;height:18px;line-height:18px;font-variant-numeric:tabular-nums}
-.b-id{font-size:15px;font-weight:700;text-align:center;height:20px;line-height:20px;font-variant-numeric:tabular-nums}
-.b-s{font-size:11px;color:var(--ink-2);text-align:center;height:14px;line-height:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.chip{border-radius:8px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding-left:7px;line-height:1.05;font-variant-numeric:tabular-nums;flex:none}
-.group .chip{height:54px}.load .chip{height:48px}
-.chip small{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.8}
-.chip b{font-size:17px;font-weight:700;letter-spacing:-.01em}
-.load .chip{padding-left:5px}
-.load .chip b{font-size:15px}
-.riv{position:absolute;left:50%;bottom:9px;width:10px;height:10px;margin-left:-5px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--bg)}
+.seg.small button{min-height:34px;padding:4px 13px}
 
 /* detail */
 .detail{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-height:96px;margin-top:8px}
@@ -267,6 +268,13 @@ tr:last-child td{border-bottom:0}
   <main class="main">
   <div class="bar">
     <div class="crumbs" id="crumbs"></div>
+    <span class="grow"></span>
+    <div class="seg small" id="show" role="group" aria-label="Show on cards">
+      <button data-k="all">All</button>
+      <button data-k="p">P</button>
+      <button data-k="st">St</button>
+      <button data-k="ss">SS</button>
+    </div>
   </div>
 
   <div class="lens idle" id="lens" aria-live="off"></div>
@@ -375,7 +383,7 @@ const state = {
   days: new Set([0,1,2,3,4,5,6]), groupBy: 'grower', sort: 'default',
   filters: {source:new Set(), grower:new Set(), variety:new Set()},
   drilled: null, selTicket: null, openOrb: null,
-  compare: false, cmp: [], sound: false
+  compare: false, cmp: [], sound: false, show: 'all'
 };
 const $ = s => document.querySelector(s);
 /* two frames later, or 80ms if the tab is not painting */
@@ -426,8 +434,15 @@ function tone(k, v){
   const i = Math.max(0, Math.min(4, Math.floor((v - m.cdom[0]) / (m.cdom[1] - m.cdom[0]) * 5)));
   return `background:${r.f[i]};color:${r.i[i]}`;
 }
-function chip(k, v, extra){
-  return `<span class="chip" style="${tone(k, v)}"><small>${METRICS[k].tag}</small><b>${v.toFixed(1)}</b>${extra || ''}</span>`;
+const BIGTAG = {p:'P · lb', st:'St · 1–6', ss:'SS · °Bx'};
+function chip(k, v, extra, big){
+  return `<span class="chip${big ? ' big' : ''}" style="${tone(k, v)}"><small>${big ? BIGTAG[k] : METRICS[k].tag}</small><b>${v.toFixed(1)}</b>${extra || ''}</span>`;
+}
+/* all three measures, or one large with the other two as pills */
+function chipSet(o, extraOf){
+  const f = state.show;
+  if (f === 'all') return `<span class="chips">${KEYS.map(k => chip(k, o[k], extraOf(k))).join('')}</span>`;
+  return `<span class="chips">${chip(f, o[f], extraOf(f), true)}<span class="mrow">${KEYS.filter(k => k !== f).map(k => `<span class="mchip" style="${tone(k, o[k])}">${METRICS[k].tag} ${o[k].toFixed(1)}</span>`).join('')}</span></span>`;
 }
 const MINSPAN = {p:1.6, st:1.2, ss:1.2};
 function spark(k, series){
@@ -443,8 +458,8 @@ function whisker(k, vals){
   const a = f(Math.min(...vals)), b = f(Math.max(...vals));
   return `<span class="wh"><i style="left:${a.toFixed(1)}%;width:${Math.max(4, b - a).toFixed(1)}%"></i></span>`;
 }
-const groupChips = g => KEYS.map(k => chip(k, g[k], state.groupBy === 'day' ? '' : spark(k, g.trend[k]))).join('');
-const loadChips = t => KEYS.map(k => chip(k, t[k], whisker(k, t.samples[k]))).join('');
+const groupChips = g => chipSet(g, k => state.groupBy === 'day' ? '' : spark(k, g.trend[k]));
+const loadChips = t => chipSet(t, k => whisker(k, t.samples[k]));
 
 /* ------------------------------------------------------------ days, legend */
 /* days are a contiguous window; strip index 0 is six days ago, 6 is today */
@@ -462,6 +477,13 @@ for (let d = 6; d >= 0; d--){
   b.className = 'dayc'; b._label = `${dt.toLocaleDateString('en-US', {weekday:'short'})} ${dt.getMonth()+1}/${dt.getDate()}`;
   b.innerHTML = `<span class="w">${d === 0 ? 'Today' : dt.toLocaleDateString('en-US', {weekday:'short'})}</span><span class="d">${dt.getDate()}</span>`;
   els.days.appendChild(b); dayCells.push(b);
+}
+const showEl = $('#show'), showBtns = [...showEl.querySelectorAll('button')], showLens = document.createElement('span');
+showLens.className = 'glass'; showEl.prepend(showLens);
+function renderShow(){
+  const i = showBtns.findIndex(b => b.dataset.k === state.show);
+  showBtns.forEach((b, j) => b.setAttribute('aria-pressed', j === i));
+  if (!showLens.classList.contains('drag')){ showLens.style.left = showBtns[i].offsetLeft + 'px'; showLens.style.width = showBtns[i].offsetWidth + 'px'; }
 }
 function presetOf(){ const r = dayRange(); return r.i1 === 6 ? segBtns.findIndex(b => +b.dataset.p === 7 - r.i0) : -1; }
 function renderDays(){
@@ -542,6 +564,12 @@ glassDrag(els.days, dayLens, dayCells, {
     if (!sameDays(i0, i0 + span)){ setDays(i0, i0 + span); tick(); render(); }
   },
   tap: i => { setDays(i, i); render(); }
+});
+const setShow = i => { if (state.show !== showBtns[i].dataset.k){ state.show = showBtns[i].dataset.k; tick(); render(); } };
+glassDrag(showEl, showLens, showBtns, {
+  grab: setShow,
+  move: (left, w, at) => { const i = at(left + w/2); showLens.style.width = showBtns[i].offsetWidth + 'px'; setShow(i); },
+  tap: setShow
 });
 glassDrag(segEl, segLens, segBtns, {
   grab: i => { setDays(7 - +segBtns[i].dataset.p, 6); render(); },
@@ -692,40 +720,53 @@ els.clear.addEventListener('click', e => { e.stopPropagation(); clearFilters(); 
 document.addEventListener('click', () => { if (state.openOrb){ state.openOrb = null; renderOrbs(true); } });
 
 /* ------------------------------------------------------------------- decks */
-function syncDeck(deckEl, items, bloom){
+/* while a card is in focus its neighbours slide apart just enough to show it whole */
+function angleFor(deck, el){
+  const g = deck._geo, h = hot && hot.parentNode === deck ? hot._i : -1;
+  if (!g || h < 0 || el._i === h || !g.shift) return el._a;
+  return el._a + (el._i < h ? -g.shift / 2 : g.shift / 2);
+}
+function applyHot(deck){
+  (deck._order || []).forEach(el => { if (!el.classList.contains('enter')) el.style.setProperty('--a', angleFor(deck, el).toFixed(2) + 'deg'); });
+}
+const chain = (R, x, y, a, sc) => `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translateY(${R}px) rotate(${a.toFixed(2)}deg) translateY(${-R}px) scale(${sc})`;
+function syncDeck(deckEl, items, from){
   const map = deckEl._map || (deckEl._map = new Map());
-  const seen = new Set(), mid = (items.length - 1) / 2;
+  const seen = new Set(), mid = (items.length - 1) / 2, R = deckEl._geo.R;
+  deckEl._order = [];
   items.forEach((it, i) => {
     seen.add(it.key);
     let el = map.get(it.key); const isNew = !el;
     if (isNew){
       el = document.createElement('div');
       el.className = 'blade ' + it.cls; el.setAttribute('role','button'); el.tabIndex = 0;
-      el.addEventListener('click', () => { if (!suppressClick && el._act) el._act(); });
+      /* pointer clicks are resolved by cardAt(); this one is for keyboards and assistive tech */
+      el.addEventListener('click', e => { if (e.detail === 0 && el._act) el._act(); });
       el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el._act && el._act(); } });
-      if (!bloom) el.classList.add('enter');
+      el.addEventListener('focus', () => { const g = deckEl._geo; if (g && g.maxOff && el.matches(':focus-visible')) spinTo(deckEl, -(g.a0 + el._i * g.step)); });
+      if (!from) el.classList.add('enter');
       deckEl.appendChild(el); map.set(it.key, el);
     }
-    if (el._html !== it.html){ el.innerHTML = it.html + '<span class="riv"></span>'; el._html = it.html; }
-    el._act = it.act; el._lens = it.lens; el.setAttribute('aria-label', it.title);
+    if (el._html !== it.html){ el.innerHTML = it.html; el._html = it.html; }
+    el._act = it.act; el._lens = it.lens; el._a = it.angle; el._i = i; el.setAttribute('aria-label', it.title);
+    deckEl._order.push(el);
     el.style.zIndex = it.z;
     ['sel','up','dim','picked'].forEach(c => el.classList.toggle(c, !!it[c]));
-    el.classList.toggle('flip', it.angle >= 0);
     const apply = () => {
-      el.style.transitionDelay = (Math.abs(i - mid) * 22) + 'ms';
-      el.style.setProperty('--a', it.angle.toFixed(2) + 'deg');
+      el.style.transitionDelay = (Math.abs(i - mid) * 20) + 'ms';
       el.classList.remove('enter');
-      setTimeout(() => { el.style.transitionDelay = ''; }, 750);
+      el.style.setProperty('--a', angleFor(deckEl, el).toFixed(2) + 'deg');
+      setTimeout(() => { el.style.transitionDelay = ''; }, 700);
     };
-    if (isNew && !bloom) nextFrame(apply);
+    if (isNew && !from) nextFrame(apply);
     else apply();
-    if (isNew && bloom && !calmMQ.matches){
+    if (isNew && from && !calmMQ.matches){
       el.animate([
-        {transform:'rotate(0deg) translateY(230px) scale(.45)', opacity:0},
-        {transform:'rotate(0deg) translateY(-14px) scale(1)', opacity:1, offset:.38},
-        {transform:`rotate(${(it.angle*1.07).toFixed(2)}deg) translateY(0) scale(1)`, opacity:1, offset:.82},
-        {transform:`rotate(${it.angle.toFixed(2)}deg) translateY(0) scale(1)`, opacity:1}
-      ], {duration:950, delay:260 + Math.abs(i - mid)*32, easing:'cubic-bezier(.3,.7,.2,1)', fill:'backwards'});
+        {transform:chain(R, from.x, from.y, 0, .3), opacity:0},
+        {transform:chain(R, 0, -20, 0, 1), opacity:1, offset:.42},
+        {transform:chain(R, 0, 0, it.angle * 1.07, 1), opacity:1, offset:.84},
+        {transform:chain(R, 0, 0, it.angle, 1), opacity:1}
+      ], {duration:900, delay:240 + Math.abs(i - mid) * 30, easing:'cubic-bezier(.3,.7,.2,1)', fill:'backwards'});
     }
   });
   for (const [k, el] of map){
@@ -734,18 +775,19 @@ function syncDeck(deckEl, items, bloom){
     el.style.setProperty('--a','0deg'); setTimeout(() => el.remove(), 650);
   }
 }
-/* fold the per-load fan back into its parent blade */
+/* fold the per-load cards back into the group card they came from */
 function closeChild(){
   const map = els.deckC._map; if (!map) return;
+  const g = els.deckC._geo, from = els.deckC._from || {x:0, y:200};
+  els.deckC._order = [];
   for (const [k, el] of map){
     map.delete(k); el.style.pointerEvents = 'none';
-    const a = el.style.getPropertyValue('--a') || '0deg';
-    if (calmMQ.matches){ el.remove(); continue; }
+    if (calmMQ.matches || !g){ el.remove(); continue; }
     el.animate([
-      {transform:`rotate(${a})`, opacity:1},
-      {transform:'rotate(0deg)', opacity:1, offset:.55},
-      {transform:'rotate(0deg) translateY(230px) scale(.45)', opacity:0}
-    ], {duration:430, easing:'cubic-bezier(.5,0,.6,1)', fill:'forwards'}).onfinish = () => el.remove();
+      {transform:chain(g.R, 0, 0, el._a, 1), opacity:1},
+      {transform:chain(g.R, 0, -12, 0, 1), opacity:1, offset:.5},
+      {transform:chain(g.R, from.x, from.y, 0, .3), opacity:0}
+    ], {duration:440, easing:'cubic-bezier(.5,0,.6,1)', fill:'forwards'}).onfinish = () => el.remove();
   }
 }
 function drill(key){
@@ -775,61 +817,93 @@ function cmpMark(item){
   return i < 0 ? '' : `<span class="cb${i ? ' b' : ''}">${'AB'[i]}</span>`;
 }
 
-let groupsNow = [], spreadNow = 0;
+/* card arc geometry, in design pixels */
+const CARD_H = 206, RAD = Math.PI / 180;
+let groupsNow = [], stageDW = 860, stageH = 320, stageS = 1;
+function arcFor(n, w, narrow){
+  const R = narrow ? 800 : 1300, maxDW = narrow ? 430 : 980, minDW = narrow ? 360 : 560;
+  const natural = (n - 1) * (w + 10) + w * 1.2 + 24;
+  const dw = Math.min(maxDW, Math.max(minDW, natural));
+  const fit = n > 1 ? (dw - 24 - w * 1.2) / (n - 1) : 0;
+  /* never squeeze cards closer than a readable value; what does not fit runs off the sides */
+  const minPitch = state.show === 'all' ? 64 : 94;   /* one large value needs nearly the whole card */
+  const pitch = n > 1 ? Math.min(w + 10, Math.max(minPitch, fit)) : 0;
+  const deg = 1 / (R + CARD_H / 2) / RAD, step = pitch * deg;
+  const half = Math.min((n - 1) / 2 * step, dw / 2 * deg);
+  return {R, n, w, h:CARD_H, dw, step, a0:-(n - 1) / 2 * step, off:0,
+    maxOff:n > 1 ? Math.max(0, pitch - fit) * (n - 1) / 2 * deg : 0,
+    shift:Math.max(0, w * 1.14 + 8 - pitch) * deg,
+    drop:(R + CARD_H) * (1 - Math.cos(half * RAD))};
+}
+/* keep the spin position while the same deck is on screen; a new deck starts at its first card */
+function carryOff(deck, g, key, centre){
+  const prev = deck._geo;
+  g.off = centre ? 0 : (deck._offKey === key && prev ? Math.max(-g.maxOff, Math.min(g.maxOff, prev.off)) : g.maxOff);
+  if (!centre) deck._offKey = key;
+}
+function spinTo(deck, off){
+  const g = deck._geo; if (!g) return;
+  g.off = Math.max(-g.maxOff, Math.min(g.maxOff, off));
+  deck._order.forEach((el, i) => { el._a = g.a0 + i * g.step + g.off; el.style.setProperty('--a', angleFor(deck, el).toFixed(2) + 'deg'); });
+}
 function renderDecks(){
   const gs = groupsNow = computeGroups(), n = gs.length;
   if (state.drilled !== null && !gs.some(g => g.key === state.drilled)){ closeChild(); state.drilled = null; state.selTicket = null; }
   const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
+  const narrow = els.stage.clientWidth < 620, TOP = 40, K = .5;
 
-  const narrow = els.stage.clientWidth < 620;
-  const maxSpread = narrow ? (n > 8 ? 100 : 84) : (n > 8 ? 170 : 120);
-  const step = n > 1 ? Math.min(28, maxSpread/(n-1)) : 0;
-  spreadNow = drilled ? 0 : step*(n-1);
+  const gp = arcFor(n, 96, narrow);
+  const ts = drilled ? gs[si].tickets.slice().sort((a,b) => state.sort === 'default' ? a.id - b.id : a[state.sort] - b[state.sort]) : [];
+  const gc = arcFor(ts.length, 90, narrow);
+  /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
+  gc.k = 1; gc.y = TOP + CARD_H;
+  gp.k = drilled ? K : 1;
+  gp.y = drilled ? gc.y + gc.drop + 22 + CARD_H * K : TOP + CARD_H;
+  stageDW = drilled ? Math.max(gc.dw, gp.dw * K) : gp.dw;
+  stageH = gp.y + gp.drop * gp.k + 14;
+  carryOff(els.deckP, gp, state.groupBy, drilled);
+  if (drilled) carryOff(els.deckC, gc, state.groupBy + '|' + state.drilled, false);
+  els.deckP._geo = gp; els.deckC._geo = drilled ? gc : null;
+  els.stage.classList.toggle('ovf', (drilled ? gc : gp).maxOff > 0);
+  [els.deckP, els.deckC].forEach(d => d.style.setProperty('--R', gp.R + 'px'));
+
   syncDeck(els.deckP, gs.map((g, i) => {
-    let angle, z;
-    if (!drilled){ angle = (i - (n-1)/2) * step; z = i + 1; }
-    else if (i === si){ angle = 0; z = 60; }
-    else if (i < si){ angle = -Math.min(104, 76 + (si-1-i)*4); z = i + 1; }
-    else { angle = Math.min(104, 76 + (i-si-1)*4); z = n - i; }
     const item = groupItem(g), mark = cmpMark(item);
-    const name = g.sub ? `<b>${g.label}</b><i>${g.sub}</i>` : g.label;
-    return {key:g.key, cls:'group', angle, z, up:drilled && i === si, dim:drilled && i !== si, picked:!!mark,
-      html:`${mark}<span class="b-name"><span>${name}</span></span><span class="b-n">${g.n} load${g.n === 1 ? '' : 's'}</span>${groupChips(g)}`,
+    return {key:g.key, cls:'group', angle:gp.a0 + i * gp.step + gp.off, z:i + 1, up:drilled && i === si, dim:drilled && i !== si, picked:!!mark,
+      html:`${mark}<span class="c-name">${g.label}</span>${g.sub ? `<span class="c-sub">${g.sub}</span>` : ''}<span class="c-sub">${g.n} load${g.n === 1 ? '' : 's'}</span>${groupChips(g)}`,
       title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:{name:g.label, meta:item.meta, o:g},
       act:() => state.compare ? pickCmp(groupItem(g)) : drill(g.key)};
-  }), false);
-  els.deckP.style.transform = drilled ? 'translate(0,615px) scale(.52)' : 'translate(0,490px) scale(1)';
-  els.deckC.style.transform = 'translate(0,386px)';
+  }), null);
+  els.deckP.style.transform = `translate(0,${gp.y.toFixed(1)}px) scale(${gp.k})`;
+  els.deckC.style.transform = `translate(0,${gc.y}px)`;
 
   if (drilled){
-    const ts = gs[si].tickets.slice().sort((a,b) => state.sort === 'default' ? a.id - b.id : a[state.sort] - b[state.sort]);
     if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
-    const m = ts.length, cstep = m > 1 ? Math.min(16, (narrow ? 110 : 190)/(m-1)) : 0;
+    /* the loads rise out of their group's card in the tray */
+    const aSel = (gp.a0 + si * gp.step + gp.off) * RAD;
+    const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + gp.R * K * (1 - Math.cos(aSel)) - CARD_H * K * .5};
     syncDeck(els.deckC, ts.map((t, i) => {
-      const mark = cmpMark(loadItem(t)), stem = state.groupBy === 'grower' ? t.variety : t.grower;
-      return {key:t.id, cls:'load', angle:(i - (m-1)/2)*cstep, z:t === state.selTicket ? 100 : i + 1, sel:!state.compare && t === state.selTicket, picked:!!mark,
-        html:`${mark}<span class="b-id">${t.id}</span><span class="b-s">Lot ${t.lot}</span><span class="b-s">${VCODE[t.variety]} ${t.dayShort}</span>${loadChips(t)}<span class="b-stem"><span>${stem}</span></span>`,
+      const mark = cmpMark(loadItem(t)), who = state.groupBy === 'grower' ? t.variety : t.grower;
+      return {key:t.id, cls:'load', angle:gc.a0 + i * gc.step + gc.off, z:t === state.selTicket ? 100 : i + 1, sel:!state.compare && t === state.selTicket, picked:!!mark,
+        html:`${mark}<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
         title:`Ticket ${t.id} · lot ${t.lot} · ${t.grower} · ${t.variety} · ${t.day}: ${tip(t)}`,
-        lens:{name:'#' + t.id, meta:`Lot ${t.lot} · ${stem} · ${t.dayShort}`, o:t},
+        lens:{name:'#' + t.id, meta:`Lot ${t.lot} · ${who} · ${t.dayShort}`, o:t},
         act:() => {
           if (state.compare){ pickCmp(loadItem(t)); return; }
           state.selTicket = state.selTicket === t ? null : t; render();
           if (state.selTicket) setTimeout(() => els.detail.scrollIntoView({block:'nearest', behavior:'smooth'}), 60);
         }};
-    }), true);
+    }), from);
   }
   fitStage();
 }
 function fitStage(){
-  const W = els.stage.clientWidth, narrow = W < 620;
-  /* a very wide fan (many lots) needs a wider canvas */
-  const need = 2 * (470 * Math.sin(Math.min(90, spreadNow / 2) * Math.PI / 180) + 50);
-  const dw = Math.round(Math.max(narrow ? 660 : 840, need));
-  /* in the side-by-side layout keep an open fan within one screen */
-  const s = Math.min(1.25, W / dw, sideMQ.matches ? Math.max(.6, (innerHeight - 130) / 660) : 9);
-  els.stageIn.style.setProperty('--dw', dw + 'px');
-  els.stageIn.style.setProperty('--s', s);
-  els.stage.style.height = Math.round((state.drilled !== null ? 660 : 530) * s) + 'px';
+  const W = els.stage.clientWidth;
+  /* fewer cards means a narrower canvas, so they are drawn larger; in the side layout an open deck still fits one screen */
+  stageS = Math.min(1.4, W / stageDW, sideMQ.matches ? Math.max(.6, (innerHeight - 120) / stageH) : 9);
+  els.stageIn.style.setProperty('--dw', stageDW + 'px');
+  els.stageIn.style.setProperty('--s', stageS.toFixed(4));
+  els.stage.style.height = Math.round(stageH * stageS) + 'px';
 }
 
 /* ------------------------------------------------------------------ crumbs */
@@ -921,8 +995,9 @@ function renderLens(){
   els.lens.classList.toggle('idle', !L);
   if (!L){
     els.lens.textContent = state.compare ? 'Compare is on · pick any two blades'
-      : noHover.matches ? (innerWidth < 560 ? 'Drag or flick the blades · let go to open' : 'Drag across the blades · flick to riffle · let go to open · pinch to close')
-      : 'Hover a blade to read it · click to open';
+      : els.stage.classList.contains('ovf') ? 'Drag sideways to spin the deck · tap a blade to open'
+      : noHover.matches ? (innerWidth < 560 ? 'Drag or flick across the blades · let go to open' : 'Drag across the blades · flick to riffle · let go to open · pinch to close')
+      : 'Hover a blade to bring it forward · click to open';
     return;
   }
   els.lens.innerHTML = `<span class="l-n">${L.name}</span><span class="l-m">${L.meta}</span>` +
@@ -930,29 +1005,71 @@ function renderLens(){
 }
 function setHot(el, feedback){
   if (el === hot) return;
+  const was = hot && hot.parentNode;
   if (hot) hot.classList.remove('hot');
   hot = el;
   if (hot){ hot.classList.add('hot'); if (feedback) tick(); }
+  if (was) applyHot(was);
+  if (hot && hot.parentNode !== was) applyHot(hot.parentNode);
   renderLens();
 }
-const bladeAt = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest('.blade') : null; };
-const spreadOf = () => { const [a, b] = [...touches.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
-/* finger position as an angle around the rivet of whichever fan is on top */
-function polar(x, y){
-  const c = (state.drilled !== null ? els.deckC : els.deckP).getBoundingClientRect();
-  return {th:Math.atan2(x - c.left, c.top - y), r:Math.hypot(x - c.left, y - c.top), cx:c.left, cy:c.top};
+/* Pointer position as an angle around a deck's pivot. Cards are found by their fixed slot in the arc,
+   not by what is drawn under the pointer, so the focus does not flicker while neighbours slide apart. */
+function polar(deck, x, y){
+  const g = deck._geo, sr = els.stageIn.getBoundingClientRect();
+  const dx = (x - (sr.left + sr.width / 2)) / stageS, dy = (y - sr.top) / stageS, py = g.y + g.R * g.k;
+  return {th:Math.atan2(dx, py - dy) / RAD, r:Math.hypot(dx, dy - py) / g.k};
 }
-function stopCoast(){ cancelAnimationFrame(coast); coast = 0; clearTimeout(idleTimer); }
-/* a flick keeps riffling through the blades and settles on its own */
-function startCoast(th, r, w){
+function slotAt(deck, th){
+  const g = deck._geo, half = g.w / 2 / (g.R + g.h / 2) / RAD;
+  th -= g.off;
+  if (th < g.a0 - half || th > g.a0 + (g.n - 1) * g.step + half) return null;
+  const i = g.step > 0 ? Math.max(0, Math.min(g.n - 1, Math.floor((th - g.a0 + half) / g.step))) : 0;
+  return th > g.a0 + i * g.step + half ? null : deck._order[i] || null;
+}
+function deckAt(x, y){
+  for (const deck of [els.deckC, els.deckP]){
+    const g = deck._geo; if (!g || !g.n) continue;
+    const q = polar(deck, x, y);
+    if (q.r >= g.R - 6 && q.r <= g.R + g.h + 34 && slotAt(deck, q.th)) return deck;
+  }
+  return null;
+}
+function bandDeck(x, y){
+  for (const deck of [els.deckC, els.deckP]){
+    const g = deck._geo; if (!g || !g.n) continue;
+    const q = polar(deck, x, y);
+    if (q.r >= g.R - 6 && q.r <= g.R + g.h + 34) return deck;
+  }
+  return null;
+}
+function cardAt(x, y){ const d = deckAt(x, y); return d ? slotAt(d, polar(d, x, y).th) : null; }
+function stopCoast(){
+  cancelAnimationFrame(coast); coast = 0; clearTimeout(idleTimer);
+  els.deckP.classList.remove('spin'); els.deckC.classList.remove('spin');
+}
+/* a crowded deck keeps turning after a flick and stops at its ends */
+function startSpin(deck, w){
   let last = performance.now();
+  const g = deck._geo, px = (g.R + g.h / 2) * g.k * stageS * RAD;
+  const frame = now => {
+    const dt = Math.min(40, now - last), before = g.off; last = now;
+    spinTo(deck, g.off + w * dt); w *= Math.exp(-dt / 320);
+    if (deck._geo === g && g.off !== before && Math.abs(w) * px > .03) coast = requestAnimationFrame(frame);
+    else { coast = 0; deck.classList.remove('spin'); }
+  };
+  coast = requestAnimationFrame(frame);
+}
+/* a flick keeps riffling through the cards and settles on its own */
+function startCoast(deck, th, w){
+  let last = performance.now();
+  const g = deck._geo, px = (g.R + g.h / 2) * g.k * stageS * RAD;
   const frame = now => {
     const dt = Math.min(40, now - last); last = now;
     th += w * dt; w *= Math.exp(-dt / 300);
-    const c = (state.drilled !== null ? els.deckC : els.deckP).getBoundingClientRect();
-    const el = bladeAt(c.left + r * Math.sin(th), c.top - r * Math.cos(th));
+    const el = deck._geo === g ? slotAt(deck, th) : null;
     if (el) setHot(el, true);
-    if (Math.abs(w) > .00022 && Math.abs(th) < 2.1) coast = requestAnimationFrame(frame);
+    if (el && Math.abs(w) * px > .04) coast = requestAnimationFrame(frame);
     else { coast = 0; idleTimer = setTimeout(() => setHot(null), 2200); }
   };
   coast = requestAnimationFrame(frame);
@@ -961,44 +1078,83 @@ els.stage.addEventListener('pointerdown', e => {
   stopCoast();
   if (e.pointerType === 'touch'){
     touches.set(e.pointerId, {x:e.clientX, y:e.clientY});
-    if (touches.size === 2){ scrub = null; setHot(null); pinch0 = spreadOf(); return; }
-    const q = polar(e.clientX, e.clientY);
-    scrub = {x:e.clientX, y:e.clientY, moved:false, th:q.th, r:q.r, t:e.timeStamp, w:0};
+    if (touches.size === 2){ scrub = null; setHot(null); pinch0 = Math.hypot(...pair()); return; }
   }
-  setHot(bladeAt(e.clientX, e.clientY), true);
+  if (e.pointerType === 'touch' || e.button === 0){
+    const deck = bandDeck(e.clientX, e.clientY), th = deck ? polar(deck, e.clientX, e.clientY).th : 0;
+    scrub = {id:e.pointerId, x:e.clientX, y:e.clientY, moved:false, pan:false, deck, th, th0:th, off0:deck ? deck._geo.off : 0, t:e.timeStamp, w:0};
+  }
+  setHot(cardAt(e.clientX, e.clientY), true);
 });
+function pair(){ const [a, b] = [...touches.values()]; return [a.x - b.x, a.y - b.y]; }
 els.stage.addEventListener('pointermove', e => {
   if (e.pointerType === 'touch'){
     if (!touches.has(e.pointerId)) return;
     touches.set(e.pointerId, {x:e.clientX, y:e.clientY});
     if (touches.size >= 2){
-      if (pinch0 && touches.size === 2 && spreadOf() / pinch0 < .72 && state.drilled !== null){ pinch0 = 0; back(); }
+      if (pinch0 && touches.size === 2 && Math.hypot(...pair()) / pinch0 < .72 && state.drilled !== null){ pinch0 = 0; back(); }
       return;
     }
-    if (scrub){
-      if (Math.hypot(e.clientX - scrub.x, e.clientY - scrub.y) > 14) scrub.moved = true;
-      const q = polar(e.clientX, e.clientY), dt = Math.max(1, e.timeStamp - scrub.t);
-      scrub.w = .6 * scrub.w + .4 * ((q.th - scrub.th) / dt); scrub.th = q.th; scrub.r = q.r; scrub.t = e.timeStamp;
+  }
+  const live = scrub && e.pointerId === scrub.id && scrub.deck && scrub.deck._geo ? scrub : null;
+  if (live && live.deck._geo.maxOff > 0){
+    const dx = e.clientX - live.x, dy = e.clientY - live.y;
+    if (!live.pan && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)){
+      live.pan = true; live.deck.classList.add('spin'); setHot(null);
+      try { els.stage.setPointerCapture(e.pointerId); } catch (err) {}
     }
   }
-  setHot(bladeAt(e.clientX, e.clientY), true);
+  if (live){
+    const th = polar(live.deck, e.clientX, e.clientY).th, dt = Math.max(1, e.timeStamp - live.t);
+    live.w = .6 * live.w + .4 * ((th - live.th) / dt); live.th = th; live.t = e.timeStamp;
+    if (live.pan){ spinTo(live.deck, live.off0 + th - live.th0); return; }
+  }
+  if (scrub && Math.hypot(e.clientX - scrub.x, e.clientY - scrub.y) > 14) scrub.moved = true;
+  setHot(cardAt(e.clientX, e.clientY), true);
 });
 function endPointer(e){
-  if (e.pointerType !== 'touch'){ if (e.type === 'pointerleave') setHot(null); return; }
+  if (scrub && scrub.pan && e.pointerId === scrub.id){
+    if (e.type === 'pointerleave') return;
+    const sc = scrub, g = sc.deck._geo; scrub = null; touches.delete(e.pointerId);
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 450);
+    const speed = g ? Math.abs(sc.w) * (g.R + g.h / 2) * g.k * stageS * RAD : 0;
+    if (g && e.type === 'pointerup' && speed > .3 && e.timeStamp - sc.t < 80) startSpin(sc.deck, sc.w);
+    else sc.deck.classList.remove('spin');
+    return;
+  }
+  if (e.pointerType !== 'touch'){ if (e.type === 'pointerleave') setHot(null); if (e.type === 'pointerup') scrub = null; return; }
   if (!touches.has(e.pointerId)) return;
   const multi = touches.size > 1; touches.delete(e.pointerId);
   const sc = scrub, h = hot, up = e.type === 'pointerup' && !multi && sc && sc.moved;
   if (touches.size === 0) scrub = null;
-  /* a fast release riffles on; a slow, deliberate one opens the blade under the finger */
-  if (up && Math.abs(sc.w) > .0011 && e.timeStamp - sc.t < 80){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); startCoast(sc.th, sc.r, sc.w); return; }
+  /* a fast release riffles on; a slow, deliberate one opens the card under the finger */
+  if (up && sc.deck && sc.deck._geo && e.timeStamp - sc.t < 80){
+    const g = sc.deck._geo, speed = Math.abs(sc.w) * (g.R + g.h / 2) * g.k * stageS * RAD;
+    if (speed > .45){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); startCoast(sc.deck, sc.th, sc.w); return; }
+  }
   setHot(null);
   if (up && h){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); h._act && h._act(); }
 }
+/* trackpads and tilt wheels spin a crowded deck too */
+let wheelTimer = 0;
+els.stage.addEventListener('wheel', e => {
+  const d = bandDeck(e.clientX, e.clientY);
+  if (!d || !d._geo.maxOff || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+  e.preventDefault(); stopCoast();
+  const g = d._geo;
+  d.classList.add('spin'); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => d.classList.remove('spin'), 160);
+  spinTo(d, g.off - e.deltaX / ((g.R + g.h / 2) * g.k * stageS) / RAD);
+}, {passive:false});
+els.stage.addEventListener('click', e => {
+  if (suppressClick || e.detail === 0) return;
+  const el = cardAt(e.clientX, e.clientY);
+  if (el && el._act) el._act();
+});
 ['pointerup','pointercancel','pointerleave'].forEach(t => els.stage.addEventListener(t, endPointer));
 
 /* ------------------------------------------------------------------ wiring */
 function render(){
-  renderDays(); renderDecks(); renderOrbs(false); renderCrumbs(); renderDetail(); renderTable();
+  renderDays(); renderShow(); renderDecks(); renderOrbs(false); renderCrumbs(); renderDetail(); renderTable();
   if (hot && !hot.isConnected) hot = null;
   renderLens();
   els.cmpBtn.textContent = state.compare ? 'Comparing · done' : 'Compare';
@@ -1012,6 +1168,7 @@ function writeURL(){
   const r = dayRange(), q = new URLSearchParams();
   q.set('days', r.i0 + '-' + r.i1); q.set('by', state.groupBy);
   if (state.sort !== 'default') q.set('sort', state.sort);
+  if (state.show !== 'all') q.set('show', state.show);
   for (const k in state.filters) if (state.filters[k].size) q.set(k, [...state.filters[k]].join('|'));
   if (state.drilled !== null) q.set('open', state.drilled);
   if (state.selTicket) q.set('ticket', state.selTicket.id);
@@ -1023,6 +1180,7 @@ function readURL(){
   if (d && +d[1] <= +d[2]) setDays(+d[1], +d[2]);
   if (DIMS[q.get('by')]) state.groupBy = q.get('by');
   if (['p','st','ss','streif'].includes(q.get('sort'))) state.sort = q.get('sort');
+  state.show = KEYS.includes(q.get('show')) ? q.get('show') : 'all';
   for (const k in state.filters){
     const known = new Set(TICKETS.map(t => t[k]));
     state.filters[k] = new Set((q.get(k) || '').split('|').filter(v => known.has(v)));
@@ -1051,7 +1209,7 @@ try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
 $('#sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else back(); } });
-addEventListener('resize', () => { renderDays(); renderDecks(); renderOrbs(true); });
+addEventListener('resize', () => { renderDays(); renderShow(); renderDecks(); renderOrbs(true); });
 darkMQ.addEventListener('change', () => { renderLegend(); render(); });
 readURL(); renderLegend(); render();
 })();
