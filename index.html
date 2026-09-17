@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f5f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
+<title>Load ticket fan deck</title>
+<style>
+:root{
+  --bg:#f5f4ef; --surface:#ffffff; --surface-2:#faf9f5;
+  --ink:#1a1a18; --ink-2:#55544f; --ink-3:#8a8882;
+  --line:rgba(20,20,18,.12); --line-2:rgba(20,20,18,.26);
+  --accent:#185FA5; --accent-bg:#E6F1FB; --accent-line:#85B7EB;
+  --shadow:0 1px 3px rgba(0,0,0,.10);
+  --glass-track:rgba(255,255,255,.45);
+  --glass-fill:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,.6));
+  --glass-fill-drag:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,.3));
+  --glass-edge:rgba(255,255,255,.95);
+  --glass-shadow:0 4px 14px rgba(0,0,0,.16),0 1px 2px rgba(0,0,0,.10),inset 0 1px 0 #fff,inset 0 -3px 6px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141413; --surface:#1f1f1d; --surface-2:#262624;
+    --ink:#f0efea; --ink-2:#c3c2b7; --ink-3:#8a8882;
+    --line:rgba(255,255,255,.12); --line-2:rgba(255,255,255,.28);
+    --accent:#85B7EB; --accent-bg:#0C2E4F; --accent-line:#185FA5;
+    --shadow:0 1px 3px rgba(0,0,0,.5);
+    --glass-track:rgba(255,255,255,.06);
+    --glass-fill:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.09));
+    --glass-fill-drag:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.05));
+    --glass-edge:rgba(255,255,255,.30);
+    --glass-shadow:0 6px 18px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.40),inset 0 -3px 6px rgba(0,0,0,.25);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(60vw 42vh at 8% 0%,rgba(55,138,221,.13),transparent 70%),radial-gradient(50vw 40vh at 96% 6%,rgba(212,83,126,.10),transparent 70%),radial-gradient(70vw 50vh at 50% 100%,rgba(186,117,23,.09),transparent 70%),var(--bg);min-height:100vh;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-text-size-adjust:100%}
+.page{max-width:1280px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* glass controls: a translucent track with a draggable lens */
+.seg,.days{position:relative;display:inline-flex;padding:4px;border-radius:999px;border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
+.seg button,.dayc{position:relative;z-index:2;border:0;background:transparent;cursor:pointer;color:var(--ink-2);transition:color .25s;-webkit-tap-highlight-color:transparent}
+.seg button{min-height:40px;padding:6px 16px;border-radius:999px;font-size:13px}
+.seg button[aria-pressed="true"]{color:var(--ink);font-weight:600}
+.dayc{width:clamp(42px,12.2vw,54px);height:46px;padding:0;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}
+.dayc .w{font-size:10px}
+.dayc .d{font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.dayc.in{color:var(--ink)}
+.dayc.in .d{font-weight:700}
+.dayc.none .d{color:var(--ink-3);font-weight:400}
+.glass{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:999px;z-index:1;pointer-events:none;background:var(--glass-fill);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);-webkit-backdrop-filter:blur(8px) saturate(1.8);backdrop-filter:blur(8px) saturate(1.8);transform:scale(1);transition:left .55s cubic-bezier(.3,1.45,.5,1),width .55s cubic-bezier(.3,1.45,.5,1),transform .4s cubic-bezier(.3,1.7,.5,1),opacity .25s}
+.glass.drag{transition:transform .18s ease-out,opacity .25s,width .2s;transform:scale(calc(1.06 * var(--sx,1)),calc(1.24 / var(--sx,1)));background:var(--glass-fill-drag)}
+@media (max-width:700px){.top{flex-direction:column;align-items:center}}
+
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+
+/* layout: filters left, fan right on tablets and up */
+.layout{margin-top:14px}
+.tools{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.ord{display:flex;align-items:center;gap:8px}
+.ord label{font-size:13px;color:var(--ink-2)}
+.ord select{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;min-height:38px;padding:5px 8px;font-size:13px}
+.btn.clear{color:var(--ink-3)}
+.btn.clear.live{color:var(--bg);background:var(--ink);border-color:var(--ink);animation:pop .3s cubic-bezier(.3,1.7,.5,1)}
+@media (min-width:760px){
+  .layout{display:grid;grid-template-columns:204px minmax(0,1fr);gap:16px;align-items:start}
+  .side{position:sticky;top:12px}
+  .tools{flex-direction:column;align-items:stretch;margin-top:14px}
+  .ord{justify-content:space-between}
+  .ord select{flex:1}
+  .side .legend{flex-direction:column;gap:8px;margin-top:16px}
+}
+
+/* orbs */
+.orbs{position:relative;height:112px;transition:height .45s cubic-bezier(.2,.8,.2,1);margin-top:10px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.orb-cap{position:absolute;top:0;transition:top .45s cubic-bezier(.2,.8,.2,1);font-size:11px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;transform:translateX(-50%);white-space:nowrap}
+.orb{position:absolute;left:0;top:0;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px;line-height:1.15;cursor:pointer;user-select:none;background:var(--surface);border:1px solid var(--line-2);box-shadow:var(--shadow);transition:transform .5s cubic-bezier(.25,.9,.3,1.15),opacity .3s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
+@media (hover:hover){.orb:hover{border-color:var(--ink-2)}}
+.orb .o1{font-size:11px;color:var(--ink-2)}
+.orb .o2{font-size:13px;font-weight:600;color:var(--ink)}
+.orb.on{background:var(--accent-bg);border-color:var(--accent-line)}
+.orb.on .o1,.orb.on .o2{color:var(--accent)}
+.orb.open{border:2px solid var(--ink)}
+.orb.lead{background:var(--ink);border-color:var(--ink)}
+.orb.lead .o1{color:var(--bg);opacity:.75}
+.orb.lead .o2{color:var(--bg)}
+.orb.zero{background:transparent;box-shadow:none;cursor:default}
+.orb.zero .o1,.orb.zero .o2{color:var(--ink-3)}
+.o-x{position:absolute;top:-6px;right:-6px;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--bg);display:none;align-items:center;justify-content:center;font-size:17px;line-height:1;box-shadow:var(--shadow)}
+.o-x::after{content:"";position:absolute;inset:-7px;border-radius:50%}
+.orb.on .o-x{display:flex;animation:pop .3s cubic-bezier(.3,1.7,.5,1)}
+.o-x:active{transform:scale(.85)}
+
+/* toolbar */
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px;min-height:36px}
+.crumbs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.crumbs .hint{font-size:13px;color:var(--ink-2)}
+.btn{border:1px solid var(--line-2);background:var(--surface);border-radius:999px;min-height:38px;padding:5px 14px;font-size:13px;cursor:pointer;transition:transform .25s cubic-bezier(.3,1.7,.5,1)}
+.btn:active{transform:scale(.94)}
+.btn:hover{border-color:var(--ink-2)}
+.grow{flex:1}
+.bar label{font-size:13px;color:var(--ink-2)}
+.bar select{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;min-height:38px;padding:5px 8px;font-size:13px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:8px}
+.legend .lg{display:flex;align-items:center;gap:6px}
+.ramp{display:inline-flex;gap:1px}
+.ramp i{width:9px;height:10px;display:block}
+.ramp i:first-child{border-radius:3px 0 0 3px}.ramp i:last-child{border-radius:0 3px 3px 0}
+
+/* lens: full-size readout of the blade under the pointer or finger */
+.lens{height:44px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;margin-top:8px;white-space:nowrap;overflow:hidden}
+.lens.idle{color:var(--ink-3);font-size:13px}
+.lens .l-n{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.lens .l-m{color:var(--ink-3);font-size:12px}
+.lens .pill{border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;flex:none;animation:pop .28s cubic-bezier(.3,1.7,.5,1)}
+.lens .pill small{font-weight:400;font-size:11px;margin-right:4px;opacity:.85}
+@keyframes pop{from{transform:scale(.8)}to{transform:scale(1)}}
+
+/* stage + blades */
+.stage{position:relative;overflow:hidden;height:510px;transition:height .7s cubic-bezier(.3,.8,.2,1);margin-top:0;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.stage-in{position:absolute;left:50%;top:0;width:var(--dw,840px);height:650px;margin-left:calc(var(--dw,840px) / -2);transform-origin:50% 0;transform:scale(var(--s,1))}
+.deck{position:absolute;left:50%;top:0;width:0;height:0;transition:transform .7s cubic-bezier(.3,.8,.2,1)}
+#deckC{z-index:5}
+.blade{position:absolute;bottom:-14px;padding:4px;display:flex;flex-direction:column;gap:3px;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% calc(100% - 14px);--a:0deg;--lift:0px;transform:rotate(var(--a)) translateY(var(--lift));transition:transform .65s cubic-bezier(.25,.9,.3,1.12),opacity .4s,border-color .2s;-webkit-tap-highlight-color:transparent}
+.blade.group{width:64px;height:450px;left:-32px;padding:5px;border-radius:12px}
+.blade.load{width:56px;height:350px;left:-28px;padding:4px;border-radius:11px}
+.blade.enter{opacity:0}
+.blade.hot{--lift:-14px;z-index:500!important;border-color:var(--ink-2)}
+.blade.sel,.blade.sel.hot{--lift:-26px;border-color:var(--ink);border-width:1.5px}
+.blade.up{border-color:var(--ink);border-width:1.5px}
+.blade.dim{opacity:.6}
+.blade.dim.hot{opacity:1}
+.b-name{height:120px;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font-size:15px;font-weight:650;letter-spacing:.01em;white-space:nowrap;overflow:hidden}
+.b-name span{display:inline-block;transition:transform .4s}
+.blade.flip .b-name span{transform:rotate(180deg)}
+.b-n{font-size:12px;color:var(--ink-2);text-align:center;height:18px;line-height:18px;font-variant-numeric:tabular-nums}
+.b-id{font-size:15px;font-weight:700;text-align:center;height:20px;line-height:20px;font-variant-numeric:tabular-nums}
+.b-s{font-size:12px;color:var(--ink-2);text-align:center;height:15px;line-height:15px;font-variant-numeric:tabular-nums}
+.chip{border-radius:8px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding-left:7px;line-height:1.05;font-variant-numeric:tabular-nums;flex:none}
+.group .chip{height:48px}.load .chip{height:44px}
+.chip small{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.8}
+.chip b{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.load .chip{padding-left:5px}
+.load .chip b{font-size:15px}
+.riv{position:absolute;left:50%;bottom:9px;width:10px;height:10px;margin-left:-5px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--bg)}
+
+/* detail */
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-height:96px;margin-top:8px}
+.detail .d-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.detail .d-t{font-size:17px;font-weight:600}
+.detail .d-m{font-size:13px;color:var(--ink-2)}
+.d-row{display:grid;grid-template-columns:130px minmax(0,560px) 80px;align-items:center;gap:12px;font-size:13px;color:var(--ink-2);margin-top:8px}
+.d-row .rng{font-size:11px;color:var(--ink-3)}
+.d-row .av{text-align:right;font-size:16px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.d-row .av small{font-size:11px;font-weight:400;color:var(--ink-3)}
+.note{font-size:12px;color:var(--ink-3);margin:12px 0 0}
+.empty{margin:0;font-size:14px;color:var(--ink-2)}
+@media (max-width:560px){.d-row{grid-template-columns:1fr 64px}.d-row svg{grid-column:1 / -1;grid-row:2}}
+
+/* table */
+details{margin-top:16px;font-size:13px}
+summary{cursor:pointer;color:var(--ink-2)}
+.tw{overflow-x:auto;margin-top:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--ink-2);font-size:12px}
+td.num,th.num{text-align:right}
+tr:last-child td{border-bottom:0}
+.foot{font-size:12px;color:var(--ink-3);margin-top:20px}
+@media (max-width:560px){
+  .page{padding-top:14px}
+  .legend .lg-long{display:none}
+  .crumbs .hint{display:none}
+  .legend{justify-content:center;gap:10px;margin-top:4px;flex-wrap:nowrap;white-space:nowrap}
+  .ramp i{width:6px}
+  .lens{height:38px;margin-top:2px}
+  .lens.idle{font-size:12px}
+  .orb{padding:2px}
+  .orb .o2{font-size:12px}
+}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="sr-only">Load ticket fan deck</h1>
+  <div class="top">
+    <div class="seg" id="period" role="group" aria-label="Period">
+      <button data-p="1">Today</button>
+      <button data-p="3">Last 3 days</button>
+      <button data-p="7">Last 7 days</button>
+    </div>
+    <div class="days" id="days" role="group" aria-label="Pick a single day"></div>
+  </div>
+
+  <div class="layout">
+  <aside class="side">
+    <div class="orbs" id="orbs"></div>
+    <div class="tools">
+      <button class="btn clear" id="clear">Clear filters</button>
+      <div class="ord">
+        <label for="sort">Order by</label>
+        <select id="sort">
+          <option value="default">Default</option>
+          <option value="p">Pressure</option>
+          <option value="st">Starch</option>
+          <option value="ss">Soluble solids</option>
+          <option value="streif">Streif index</option>
+        </select>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </aside>
+
+  <main class="main">
+  <div class="bar">
+    <div class="crumbs" id="crumbs"></div>
+  </div>
+
+  <div class="lens idle" id="lens" aria-live="off"></div>
+
+  <div class="stage" id="stage">
+    <h2 class="sr-only">Fan deck. Each blade is a group average; opening a blade fans out one blade per load.</h2>
+    <div class="stage-in" id="stageIn">
+      <div class="deck" id="deckP"></div>
+      <div class="deck" id="deckC"></div>
+    </div>
+  </div>
+
+  <div class="detail" id="detail"></div>
+  </main>
+  </div>
+
+  <details>
+    <summary>View loads in scope as a table</summary>
+    <div class="tw"><table id="table"></table></div>
+  </details>
+
+  <p class="foot">Group and period averages are the simple mean of the load averages. Target bands are placeholders. Data is generated in <code>buildMockTickets()</code>; swap that function for a real feed.</p>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ------------------------------------------------------------------ metrics */
+const METRICS = {
+  p:  {name:'Pressure', tag:'P', unit:'lb', dom:[11,22], cdom:[13.5,19.5], band:[15,18], dot:'#378ADD',
+       light:{f:['#E6F1FB','#B5D4F4','#85B7EB','#378ADD','#185FA5'], i:['#042C53','#042C53','#042C53','#042C53','#E6F1FB']},
+       dark: {f:['#042C53','#0C447C','#185FA5','#378ADD','#85B7EB'], i:['#B5D4F4','#E6F1FB','#E6F1FB','#042C53','#042C53']}},
+  st: {name:'Starch', tag:'St', unit:'1–6', dom:[1,6], cdom:[1.5,5.5], band:[2,4], dot:'#D4537E',
+       light:{f:['#FBEAF0','#F4C0D1','#ED93B1','#D4537E','#993556'], i:['#4B1528','#4B1528','#4B1528','#4B1528','#FBEAF0']},
+       dark: {f:['#4B1528','#72243E','#993556','#D4537E','#ED93B1'], i:['#F4C0D1','#FBEAF0','#FBEAF0','#4B1528','#4B1528']}},
+  ss: {name:'Soluble solids', tag:'SS', unit:'°Bx', dom:[9,17], cdom:[11.5,15], band:[12,14.5], dot:'#BA7517',
+       light:{f:['#FAEEDA','#FAC775','#EF9F27','#BA7517','#854F0B'], i:['#412402','#412402','#412402','#412402','#FAEEDA']},
+       dark: {f:['#412402','#633806','#854F0B','#BA7517','#EF9F27'], i:['#FAC775','#FAEEDA','#FAEEDA','#412402','#412402']}}
+};
+const KEYS = ['p','st','ss'];
+const DIMS = {
+  grower:{label:'Grower', plural:'growers'},
+  variety:{label:'Variety', plural:'varieties'},
+  source:{label:'Source', plural:'sources'},
+  day:{label:'Day', plural:'days'}
+};
+const VCODE = {'Honeycrisp':'HC','Gala':'GA','Fuji':'FJ','Granny Smith':'GS','Cosmic Crisp':'CC'};
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const calmMQ = matchMedia('(prefers-reduced-motion: reduce)');
+
+/* --------------------------------------------------------------------- data */
+/* Ticket shape: {id, daysAgo, day, dayShort, grower, source, variety, block, bins,
+   samples:{p:[],st:[],ss:[]}}. Averages and Streif are derived below. */
+function buildMockTickets(){
+  let seed = 41;
+  const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+  const g = () => (rnd()+rnd()+rnd()-1.5)*1.15;
+  const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+  const pick = a => a[Math.floor(rnd()*a.length)];
+  const growers = [
+    {n:'Home Ranch', s:'Captive', b:-.12, v:['Honeycrisp','Gala','Cosmic Crisp']},
+    {n:'River Bench', s:'Captive', b:.05, v:['Fuji','Granny Smith','Gala']},
+    {n:'Alder Creek', s:'Outside', b:.18, v:['Honeycrisp','Fuji']},
+    {n:'Kessler Fruit', s:'Outside', b:-.02, v:['Gala','Granny Smith','Cosmic Crisp']},
+    {n:'Tri-Peak', s:'Outside', b:.10, v:['Honeycrisp','Cosmic Crisp','Fuji']}
+  ];
+  const vbias = {'Honeycrisp':-.05,'Gala':.08,'Fuji':0,'Granny Smith':-.15,'Cosmic Crisp':-.08};
+  const out = []; let id = 4100;
+  const today = new Date();
+  for (let daysAgo = 6; daysAgo >= 0; daysAgo--){
+    const d = new Date(today); d.setDate(today.getDate()-daysAgo);
+    const n = 5 + Math.floor(rnd()*4);
+    for (let j = 0; j < n; j++){
+      const gr = pick(growers), variety = pick(gr.v);
+      const t = clamp(.5 + gr.b + vbias[variety] + g()*.22, 0, 1);
+      const s = {p:[], st:[], ss:[]};
+      for (let k = 0; k < 10; k++){
+        s.p.push(clamp(19.2 - 5*t + g()*1.3, 11.5, 21.5));
+        s.st.push(clamp(Math.round((1.6 + 3.8*t + g()*.9)*2)/2, 1, 6));
+        s.ss.push(clamp(11.6 + 3*t + g()*.8, 9.5, 16.5));
+      }
+      id += 1 + Math.floor(rnd()*3);
+      out.push({id, daysAgo,
+        day: d.toLocaleDateString('en-US',{weekday:'short'}) + ' ' + (d.getMonth()+1) + '/' + d.getDate(),
+        dayShort: (d.getMonth()+1) + '/' + d.getDate(),
+        grower: gr.n, source: gr.s, variety,
+        block: 'Block ' + (3 + Math.floor(rnd()*20)), bins: 24 + Math.floor(rnd()*36), samples: s});
+    }
+  }
+  return out;
+}
+const mean = a => a.reduce((x,y) => x+y, 0) / a.length;
+const TICKETS = buildMockTickets().map(t => {
+  KEYS.forEach(k => t[k] = mean(t.samples[k]));
+  t.streif = t.p / (t.ss * t.st);
+  return t;
+});
+
+/* -------------------------------------------------------------------- state */
+const state = {
+  days: new Set([0,1,2,3,4,5,6]), groupBy: 'grower', sort: 'default',
+  filters: {source:new Set(), grower:new Set(), variety:new Set()},
+  drilled: null, selTicket: null, openOrb: null
+};
+const $ = s => document.querySelector(s);
+/* two frames later, or 80ms if the tab is not painting */
+function nextFrame(fn){ let done = false; const run = () => { if (!done){ done = true; fn(); } }; requestAnimationFrame(() => requestAnimationFrame(run)); setTimeout(run, 80); }
+const els = {days:$('#days'), lens:$('#lens'), orbs:$('#orbs'), clear:$('#clear'), crumbs:$('#crumbs'), legend:$('#legend'), stage:$('#stage'),
+  stageIn:$('#stageIn'), deckP:$('#deckP'), deckC:$('#deckC'), detail:$('#detail'), table:$('#table')};
+
+function scope(except){
+  return TICKETS.filter(t => {
+    if (!state.days.has(t.daysAgo)) return false;
+    for (const k in state.filters){
+      if (k === except) continue;
+      const f = state.filters[k];
+      if (f.size && !f.has(t[k])) return false;
+    }
+    return true;
+  });
+}
+function summarize(ts){
+  const o = {n: ts.length, bins: ts.reduce((a,t) => a+t.bins, 0)};
+  KEYS.forEach(k => o[k] = ts.length ? mean(ts.map(t => t[k])) : NaN);
+  o.streif = o.p / (o.ss * o.st);
+  return o;
+}
+function computeGroups(){
+  const m = new Map();
+  scope().forEach(t => { const k = t[state.groupBy]; (m.get(k) || m.set(k, []).get(k)).push(t); });
+  const gs = [...m].map(([key, ts]) => Object.assign(summarize(ts), {key, tickets: ts,
+    order: state.groupBy === 'day' ? -ts[0].daysAgo : key}));
+  gs.sort((a,b) => state.sort === 'default'
+    ? (typeof a.order === 'number' ? a.order - b.order : a.order.localeCompare(b.order))
+    : a[state.sort] - b[state.sort]);
+  return gs;
+}
+
+/* ------------------------------------------------------------------- chips */
+function tone(k, v){
+  const m = METRICS[k], r = darkMQ.matches ? m.dark : m.light;
+  const i = Math.max(0, Math.min(4, Math.floor((v - m.cdom[0]) / (m.cdom[1] - m.cdom[0]) * 5)));
+  return `background:${r.f[i]};color:${r.i[i]}`;
+}
+function chip(k, v){
+  return `<span class="chip" style="${tone(k, v)}"><small>${METRICS[k].tag}</small><b>${v.toFixed(1)}</b></span>`;
+}
+const chips = o => KEYS.map(k => chip(k, o[k])).join('');
+
+/* ------------------------------------------------------------ days, legend */
+/* days are a contiguous window; strip index 0 is six days ago, 6 is today */
+const dayRange = () => { const v = [...state.days]; return {i0:6 - Math.max(...v), i1:6 - Math.min(...v)}; };
+const setDays = (i0, i1) => { const d = new Set(); for (let i = i0; i <= i1; i++) d.add(6 - i); state.days = d; };
+const sameDays = (i0, i1) => { const r = dayRange(); return r.i0 === i0 && r.i1 === i1; };
+const segEl = $('#period'), segBtns = [...segEl.querySelectorAll('button')];
+const segLens = document.createElement('span'), dayLens = document.createElement('span');
+segLens.className = dayLens.className = 'glass';
+segEl.prepend(segLens); els.days.appendChild(dayLens);
+const dayCells = [];
+for (let d = 6; d >= 0; d--){
+  const dt = new Date(); dt.setDate(dt.getDate() - d);
+  const b = document.createElement('button');
+  b.className = 'dayc'; b._label = `${dt.toLocaleDateString('en-US', {weekday:'short'})} ${dt.getMonth()+1}/${dt.getDate()}`;
+  b.innerHTML = `<span class="w">${d === 0 ? 'Today' : dt.toLocaleDateString('en-US', {weekday:'short'})}</span><span class="d">${dt.getDate()}</span>`;
+  els.days.appendChild(b); dayCells.push(b);
+}
+function presetOf(){ const r = dayRange(); return r.i1 === 6 ? segBtns.findIndex(b => +b.dataset.p === 7 - r.i0) : -1; }
+function renderDays(){
+  const r = dayRange(), solo = r.i0 === r.i1;
+  dayCells.forEach((b, i) => {
+    const n = TICKETS.filter(t => t.daysAgo === 6 - i).length, on = i >= r.i0 && i <= r.i1;
+    b.classList.toggle('in', on); b.classList.toggle('none', !n);
+    b.setAttribute('aria-pressed', on && solo); b.setAttribute('aria-label', `${b._label}, ${n} loads`);
+  });
+  if (!dayLens.classList.contains('drag')){
+    const a = dayCells[r.i0], z = dayCells[r.i1];
+    dayLens.style.left = a.offsetLeft + 'px';
+    dayLens.style.width = (z.offsetLeft + z.offsetWidth - a.offsetLeft) + 'px';
+  }
+  const pi = presetOf();
+  segBtns.forEach((b, i) => b.setAttribute('aria-pressed', i === pi));
+  if (!segLens.classList.contains('drag')){
+    segLens.style.opacity = pi < 0 ? 0 : 1;
+    if (pi >= 0){ segLens.style.left = segBtns[pi].offsetLeft + 'px'; segLens.style.width = segBtns[pi].offsetWidth + 'px'; }
+  }
+}
+/* drag a glass lens along its track: follows the finger, stretches with speed, snaps on release */
+function glassDrag(track, lens, cells, o){
+  let st = null;
+  const at = x => { let best = 0; cells.forEach((c, i) => { if (x >= c.offsetLeft) best = i; }); return best; };
+  track.addEventListener('pointerdown', e => {
+    if (e.button) return;
+    const lr = lens.getBoundingClientRect();
+    st = {id:e.pointerId, x0:e.clientX, x:e.clientX - track.getBoundingClientRect().left, left0:lens.offsetLeft, drag:false, v:0, lx:e.clientX, lt:e.timeStamp,
+      inLens:lens.style.opacity !== '0' && e.clientX >= lr.left && e.clientX <= lr.right};
+    track.setPointerCapture(e.pointerId);
+  });
+  track.addEventListener('pointermove', e => {
+    if (!st || e.pointerId !== st.id) return;
+    const dx = e.clientX - st.x0;
+    if (!st.drag){
+      if (Math.abs(dx) < 6) return;
+      st.drag = true; lens.classList.add('drag'); lens.style.opacity = 1;
+      if (!st.inLens){ const c = cells[at(st.x)]; lens.style.width = c.offsetWidth + 'px'; st.left0 = st.x - c.offsetWidth/2; o.grab(at(st.x)); }
+    }
+    st.v = .7*st.v + .3*((e.clientX - st.lx) / Math.max(1, e.timeStamp - st.lt)); st.lx = e.clientX; st.lt = e.timeStamp;
+    const first = cells[0], last = cells[cells.length-1], w = lens.offsetWidth;
+    const left = Math.max(first.offsetLeft, Math.min(last.offsetLeft + last.offsetWidth - w, st.left0 + dx));
+    lens.style.left = left + 'px';
+    lens.style.setProperty('--sx', (1 + Math.min(.22, Math.abs(st.v)*.14)).toFixed(3));
+    o.move(left, w, at);
+  });
+  const end = e => {
+    if (!st || e.pointerId !== st.id) return;
+    const was = st; st = null;
+    if (was.drag){ lens.classList.remove('drag'); lens.style.removeProperty('--sx'); render(); }
+    else if (e.type === 'pointerup') o.tap(at(was.x));
+  };
+  track.addEventListener('pointerup', end); track.addEventListener('pointercancel', end);
+  /* keyboard and assistive clicks arrive without pointer events */
+  cells.forEach((c, i) => c.addEventListener('click', e => { if (e.detail === 0) o.tap(i); }));
+}
+const tick = () => { if (navigator.vibrate) navigator.vibrate(5); };
+glassDrag(els.days, dayLens, dayCells, {
+  grab: i => { setDays(i, i); render(); },
+  move: (left, w) => {
+    const r = dayRange(), span = r.i1 - r.i0, cw = dayCells[0].offsetWidth;
+    const i0 = Math.max(0, Math.min(6 - span, Math.round((left - dayCells[0].offsetLeft) / cw)));
+    if (!sameDays(i0, i0 + span)){ setDays(i0, i0 + span); tick(); render(); }
+  },
+  tap: i => { setDays(i, i); render(); }
+});
+glassDrag(segEl, segLens, segBtns, {
+  grab: i => { setDays(7 - +segBtns[i].dataset.p, 6); render(); },
+  move: (left, w, at) => {
+    const i = at(left + w/2);
+    segLens.style.width = segBtns[i].offsetWidth + 'px';
+    if (presetOf() !== i){ setDays(7 - +segBtns[i].dataset.p, 6); tick(); render(); }
+  },
+  tap: i => { setDays(7 - +segBtns[i].dataset.p, 6); render(); }
+});
+function renderLegend(){
+  const mode = darkMQ.matches ? 'dark' : 'light';
+  els.legend.innerHTML = KEYS.map(k => {
+    const m = METRICS[k];
+    return `<span class="lg"><span class="ramp">${m[mode].f.map(c => `<i style="background:${c}"></i>`).join('')}</span><span>${m.name}<span class="lg-long"> (${m.unit})</span></span></span>`;
+  }).join('') + '<span class="lg lg-long" style="color:var(--ink-3)">Chip color runs low to high</span>';
+}
+
+/* -------------------------------------------------------------------- orbs */
+const ORBS = [
+  {k:'groupBy', name:'Blades by', single:true},
+  {k:'source', name:'Source'}, {k:'grower', name:'Grower'}, {k:'variety', name:'Variety'}
+];
+const OFF = [0,165,280,395]; let PS = 86, OS = 68;
+const parents = {}; let optEls = []; let caps = [];
+function mkOrb(size){
+  const o = document.createElement('div');
+  o.className = 'orb'; o.setAttribute('role','button'); o.tabIndex = 0;
+  o.style.width = o.style.height = size + 'px';
+  o.innerHTML = '<span class="o1"></span><span class="o2"></span>';
+  return o;
+}
+function onAct(el, fn){
+  el.addEventListener('click', e => { e.stopPropagation(); fn(); });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fn(); } });
+}
+const sideMQ = matchMedia('(min-width: 760px)');
+function clearFilters(k){
+  Object.keys(state.filters).forEach(f => { if (!k || f === k) state.filters[f].clear(); });
+  render();
+}
+ORBS.forEach(ob => {
+  const o = mkOrb(PS); if (ob.single) o.classList.add('lead');
+  parents[ob.k] = o; els.orbs.appendChild(o);
+  onAct(o, () => { state.openOrb = state.openOrb === ob.k ? null : ob.k; renderOrbs(true); });
+  if (!ob.single){
+    const x = document.createElement('span');
+    x.className = 'o-x'; x.textContent = '×'; x.setAttribute('role','button'); x.tabIndex = 0;
+    x.setAttribute('aria-label', `Clear ${ob.name.toLowerCase()} filter`);
+    o.appendChild(x); onAct(x, () => clearFilters(ob.k));
+  }
+});
+['Group','Filter'].forEach(txt => { const c = document.createElement('span'); c.className = 'orb-cap'; c.textContent = txt; els.orbs.appendChild(c); caps.push(c); });
+function orbOptions(ob){
+  if (ob.single) return Object.keys(DIMS).map(d => ({v:d, l:DIMS[d].label, n:new Set(scope().map(t => t[d])).size, on:state.groupBy === d}));
+  const f = state.filters[ob.k], inScope = scope(ob.k);
+  const vals = [...new Set(TICKETS.map(t => t[ob.k]))].sort();
+  return [{v:null, l:'All', n:inScope.length, on:f.size === 0}]
+    .concat(vals.map(v => ({v, l:v, n:inScope.filter(t => t[ob.k] === v).length, on:f.has(v)})));
+}
+/* positions for the four main orbs (P), the open orb's options (O) and the captions (C) */
+function orbLayout(){
+  const W = els.orbs.clientWidth, side = sideMQ.matches;
+  const oi = ORBS.findIndex(o => o.k === state.openOrb), list = oi >= 0 ? orbOptions(ORBS[oi]) : [], n = list.length;
+  const P = [], O = [], C = []; let H;
+  if (!side){
+    PS = W < 560 ? 70 : 86; OS = W < 560 ? 58 : 68;
+    const k = Math.min(1, (W - PS) / OFF[3]), x0 = W/2 - (OFF[3]*k + PS)/2;
+    ORBS.forEach((ob, i) => P[i] = {x:x0 + OFF[i]*k, y:20});
+    C.push({x:P[0].x + PS/2, y:0}, {x:P[2].x + PS/2, y:0});
+    const step = Math.min(OS + 8, (W - OS) / Math.max(1, n-1));
+    list.forEach((op, j) => {
+      const u = n > 1 ? (j - (n-1)/2) / ((n-1)/2) : 0;
+      O[j] = {x:W/2 + (j - (n-1)/2)*step - OS/2, y:20 + PS + 22 - 12*u*u};
+    });
+    H = n ? 20 + PS + 22 + OS + 10 : 20 + PS + 6;
+  } else {
+    PS = 80; OS = 60;
+    const cols = 3, cell = OS + 6; let y = 0;
+    ORBS.forEach((ob, i) => {
+      if (i < 2){ C.push({x:W/2, y}); y += 20; }
+      P[i] = {x:(W - PS)/2, y}; y += PS + 12;
+      if (i === oi){
+        list.forEach((op, j) => {
+          const r = Math.floor(j / cols), inRow = Math.min(cols, n - r*cols), c = j - r*cols;
+          O[j] = {x:W/2 + (c - (inRow-1)/2)*cell - OS/2, y:y + r*cell};
+        });
+        y += Math.ceil(n / cols)*cell + 8;
+      }
+      if (i === 0) y += 6;
+    });
+    H = y;
+  }
+  return {P, O, C, H, oi, list};
+}
+function renderOrbs(animate){
+  const L = orbLayout();
+  els.orbs.style.height = L.H + 'px';
+  let active = 0;
+  ORBS.forEach((ob, i) => {
+    const o = parents[ob.k];
+    o.style.width = o.style.height = PS + 'px';
+    let val, on = false;
+    if (ob.single) val = DIMS[state.groupBy].label;
+    else { const f = state.filters[ob.k]; on = f.size > 0; if (on) active++; val = f.size === 0 ? 'All' : f.size === 1 ? [...f][0] : f.size + ' selected'; }
+    o.style.transform = `translate(${L.P[i].x}px,${L.P[i].y}px)`;
+    o.children[0].textContent = ob.name; o.children[1].textContent = val;
+    o.classList.toggle('on', on); o.classList.toggle('open', state.openOrb === ob.k);
+    o.setAttribute('aria-expanded', state.openOrb === ob.k);
+    o.setAttribute('aria-label', `${ob.name}: ${val}`);
+  });
+  L.C.forEach((c, i) => { caps[i].style.left = c.x + 'px'; caps[i].style.top = c.y + 'px'; });
+  els.clear.textContent = active ? `Clear filters (${active})` : 'Clear filters';
+  els.clear.classList.toggle('live', active > 0);
+  if (animate){ optEls.forEach(e => e.remove()); optEls = []; }
+  if (L.oi < 0) return;
+  const ob = ORBS[L.oi];
+  L.list.forEach((op, j) => {
+    let el = optEls[j];
+    const to = `translate(${L.O[j].x}px,${L.O[j].y}px) scale(1)`;
+    if (!el){
+      el = mkOrb(OS); el.style.zIndex = 2; optEls[j] = el;
+      el.style.opacity = 0; el.style.transform = `translate(${L.P[L.oi].x + (PS-OS)/2}px,${L.P[L.oi].y + (PS-OS)/2}px) scale(.25)`;
+      el.style.transitionDelay = (j*28) + 'ms';
+      els.orbs.appendChild(el);
+      nextFrame(() => { el.style.opacity = 1; el.style.transform = to; });
+      onAct(el, () => {
+        const cur = orbOptions(ob)[j];
+        if (ob.single){
+          if (state.groupBy !== cur.v){ state.groupBy = cur.v; closeChild(); state.drilled = null; state.selTicket = null; }
+        } else {
+          const f = state.filters[ob.k];
+          if (cur.v === null) f.clear();
+          else if (f.has(cur.v)) f.delete(cur.v);
+          else if (cur.n > 0) f.add(cur.v);
+          else return;
+        }
+        render();
+      });
+    } else if (el.style.opacity === '1') el.style.transform = to;
+    el.children[0].textContent = op.l; el.children[1].textContent = op.n;
+    el.classList.toggle('on', op.on); el.classList.toggle('zero', op.n === 0 && !op.on);
+    el.setAttribute('aria-pressed', op.on);
+    el.setAttribute('aria-label', ob.single ? `Blades by ${op.l}, ${op.n} blades` : `${op.l}, ${op.n} loads`);
+  });
+}
+els.clear.addEventListener('click', e => { e.stopPropagation(); clearFilters(); });
+document.addEventListener('click', () => { if (state.openOrb){ state.openOrb = null; renderOrbs(true); } });
+
+/* ------------------------------------------------------------------- decks */
+function syncDeck(deckEl, items, bloom){
+  const map = deckEl._map || (deckEl._map = new Map());
+  const seen = new Set(), mid = (items.length - 1) / 2;
+  items.forEach((it, i) => {
+    seen.add(it.key);
+    let el = map.get(it.key); const isNew = !el;
+    if (isNew){
+      el = document.createElement('div');
+      el.className = 'blade ' + it.cls; el.setAttribute('role','button'); el.tabIndex = 0;
+      el.addEventListener('click', () => { if (!suppressClick && el._act) el._act(); });
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el._act && el._act(); } });
+      if (!bloom) el.classList.add('enter');
+      deckEl.appendChild(el); map.set(it.key, el);
+    }
+    if (el._html !== it.html){ el.innerHTML = it.html + '<span class="riv"></span>'; el._html = it.html; }
+    el._act = it.act; el._lens = it.lens; el.setAttribute('aria-label', it.title);
+    el.style.zIndex = it.z;
+    ['sel','up','dim'].forEach(c => el.classList.toggle(c, !!it[c]));
+    el.classList.toggle('flip', it.angle >= 0);
+    const apply = () => {
+      el.style.transitionDelay = (Math.abs(i - mid) * 22) + 'ms';
+      el.style.setProperty('--a', it.angle.toFixed(2) + 'deg');
+      el.classList.remove('enter');
+      setTimeout(() => { el.style.transitionDelay = ''; }, 750);
+    };
+    if (isNew && !bloom) nextFrame(apply);
+    else apply();
+    if (isNew && bloom && !calmMQ.matches){
+      el.animate([
+        {transform:'rotate(0deg) translateY(230px) scale(.45)', opacity:0},
+        {transform:'rotate(0deg) translateY(-14px) scale(1)', opacity:1, offset:.38},
+        {transform:`rotate(${(it.angle*1.07).toFixed(2)}deg) translateY(0) scale(1)`, opacity:1, offset:.82},
+        {transform:`rotate(${it.angle.toFixed(2)}deg) translateY(0) scale(1)`, opacity:1}
+      ], {duration:950, delay:260 + Math.abs(i - mid)*32, easing:'cubic-bezier(.3,.7,.2,1)', fill:'backwards'});
+    }
+  });
+  for (const [k, el] of map){
+    if (seen.has(k)) continue;
+    map.delete(k); el.classList.add('enter'); el.style.pointerEvents = 'none';
+    el.style.setProperty('--a','0deg'); setTimeout(() => el.remove(), 650);
+  }
+}
+/* fold the per-load fan back into its parent blade */
+function closeChild(){
+  const map = els.deckC._map; if (!map) return;
+  for (const [k, el] of map){
+    map.delete(k); el.style.pointerEvents = 'none';
+    const a = el.style.getPropertyValue('--a') || '0deg';
+    if (calmMQ.matches){ el.remove(); continue; }
+    el.animate([
+      {transform:`rotate(${a})`, opacity:1},
+      {transform:'rotate(0deg)', opacity:1, offset:.55},
+      {transform:'rotate(0deg) translateY(230px) scale(.45)', opacity:0}
+    ], {duration:430, easing:'cubic-bezier(.5,0,.6,1)', fill:'forwards'}).onfinish = () => el.remove();
+  }
+}
+function drill(key){
+  if (state.drilled === key){ back(); return; }
+  closeChild(); state.drilled = key; state.selTicket = null; render();
+  setTimeout(() => els.stage.scrollIntoView({block:'nearest', behavior:'smooth'}), 720);
+}
+function back(){
+  if (state.drilled === null) return;
+  closeChild(); state.drilled = null; state.selTicket = null; render();
+}
+const tip = o => `pressure ${o.p.toFixed(1)} lb, starch ${o.st.toFixed(1)}, soluble solids ${o.ss.toFixed(1)} °Bx`;
+
+let groupsNow = [];
+function renderDecks(){
+  const gs = groupsNow = computeGroups(), n = gs.length;
+  if (state.drilled !== null && !gs.some(g => g.key === state.drilled)){ closeChild(); state.drilled = null; state.selTicket = null; }
+  const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
+
+  const narrow = els.stage.clientWidth < 620;
+  const step = n > 1 ? Math.min(28, (narrow ? 84 : 120)/(n-1)) : 0;
+  syncDeck(els.deckP, gs.map((g, i) => {
+    let angle, z;
+    if (!drilled){ angle = (i - (n-1)/2) * step; z = i + 1; }
+    else if (i === si){ angle = 0; z = 60; }
+    else if (i < si){ angle = -Math.min(104, 76 + (si-1-i)*4); z = i + 1; }
+    else { angle = Math.min(104, 76 + (i-si-1)*4); z = n - i; }
+    return {key:g.key, cls:'group', angle, z, up:drilled && i === si, dim:drilled && i !== si,
+      html:`<span class="b-name"><span>${g.key}</span></span><span class="b-n">n=${g.n}</span>${chips(g)}`,
+      title:`${g.key}: ${g.n} loads, ${tip(g)}`, lens:{name:g.key, meta:`${g.n} load${g.n === 1 ? '' : 's'}`, o:g}, act:() => drill(g.key)};
+  }), false);
+  els.deckP.style.transform = drilled ? 'translate(0,605px) scale(.52)' : 'translate(0,470px) scale(1)';
+  els.deckC.style.transform = 'translate(0,386px)';
+
+  if (drilled){
+    const ts = gs[si].tickets.slice().sort((a,b) => state.sort === 'default' ? a.id - b.id : a[state.sort] - b[state.sort]);
+    if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
+    const m = ts.length, cstep = m > 1 ? Math.min(16, (narrow ? 110 : 190)/(m-1)) : 0;
+    syncDeck(els.deckC, ts.map((t, i) => ({
+      key:t.id, cls:'load', angle:(i - (m-1)/2)*cstep, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
+      html:`<span class="b-id">${t.id}</span><span class="b-s">${state.groupBy === 'variety' ? t.source.slice(0,3) : VCODE[t.variety]}</span><span class="b-s">${t.dayShort}</span>${chips(t)}`,
+      title:`Ticket ${t.id} · ${t.grower} · ${t.variety} · ${t.day}: ${tip(t)}`,
+      lens:{name:'#' + t.id, meta:`${state.groupBy === 'grower' ? t.variety : t.grower} · ${t.dayShort}`, o:t},
+      act:() => { state.selTicket = state.selTicket === t ? null : t; render(); if (state.selTicket) setTimeout(() => els.detail.scrollIntoView({block:'nearest', behavior:'smooth'}), 60); }
+    })), true);
+  }
+  fitStage();
+}
+function fitStage(){
+  const W = els.stage.clientWidth, dw = W < 620 ? 660 : 840;
+  /* in the side-by-side layout keep an open fan within one screen */
+  const s = Math.min(1.25, W / dw, sideMQ.matches ? Math.max(.6, (innerHeight - 130) / 650) : 9);
+  els.stageIn.style.setProperty('--dw', dw + 'px');
+  els.stageIn.style.setProperty('--s', s);
+  els.stage.style.height = Math.round((state.drilled !== null ? 650 : 510) * s) + 'px';
+}
+
+/* ------------------------------------------------------------------ crumbs */
+function renderCrumbs(){
+  const d = DIMS[state.groupBy], gs = groupsNow, total = gs.reduce((a,g) => a + g.n, 0);
+  if (state.drilled === null){
+    els.crumbs.innerHTML = total
+      ? `<strong>All ${d.plural}</strong><span class="hint">${gs.length} blades · ${total} loads · select a blade to fan out its loads</span>`
+      : `<strong>No loads</strong><span class="hint">Nothing matches this period and these filters.</span>`;
+    return;
+  }
+  const g = gs.find(x => x.key === state.drilled);
+  els.crumbs.innerHTML = `<button class="btn" id="backBtn">← All ${d.plural}</button><strong>${g.key}</strong><span class="hint">${g.n} loads · select a load for its samples · Esc to close</span>`;
+  $('#backBtn').addEventListener('click', back);
+}
+
+/* ------------------------------------------------------------------ detail */
+function strip(k, t, g){
+  const m = METRICS[k], W = 400, x = v => 8 + (v - m.dom[0]) / (m.dom[1] - m.dom[0]) * (W - 16);
+  const mode = darkMQ.matches ? m.dark : m.light;
+  let h = `<svg viewBox="0 0 ${W} 30" width="100%" role="img" aria-label="${m.name} samples">` +
+    `<rect x="${x(m.band[0])}" y="3" width="${x(m.band[1]) - x(m.band[0])}" height="24" rx="4" fill="${mode.f[1]}" opacity=".4"/>` +
+    `<line x1="8" x2="${W-8}" y1="15" y2="15" stroke="var(--line-2)" stroke-width="1"/>`;
+  t.samples[k].forEach((v, i) => h += `<circle cx="${x(v).toFixed(1)}" cy="15" r="4.5" fill="${m.dot}" stroke="var(--surface)" stroke-width="1.5"><title>Sample ${i+1}: ${v.toFixed(1)} ${m.unit}</title></circle>`);
+  if (g) h += `<line x1="${x(g[k]).toFixed(1)}" x2="${x(g[k]).toFixed(1)}" y1="2" y2="28" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="3 3"><title>${g.key} average: ${g[k].toFixed(1)}</title></line>`;
+  h += `<line x1="${x(t[k]).toFixed(1)}" x2="${x(t[k]).toFixed(1)}" y1="1" y2="29" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>`;
+  return h;
+}
+function renderDetail(){
+  const t = state.selTicket;
+  if (!t){
+    els.detail.innerHTML = `<p class="empty">${state.drilled === null
+      ? 'Each blade is the average of every load in that group for the period. Open one to see its loads.'
+      : 'Select a load blade to pull it out and see every sampled fruit.'}</p>`;
+    return;
+  }
+  const g = groupsNow.find(x => x.key === state.drilled);
+  els.detail.innerHTML =
+    `<div class="d-h"><span class="d-t">Ticket ${t.id}</span><span class="d-m">${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} · ${t.bins} bins · Streif ${t.streif.toFixed(2)}</span></div>` +
+    KEYS.map(k => {
+      const m = METRICS[k], s = t.samples[k];
+      return `<div class="d-row"><span>${m.name}<br><span class="rng">${Math.min(...s).toFixed(1)} to ${Math.max(...s).toFixed(1)} ${m.unit}</span></span>${strip(k, t, g)}<span class="av">${t[k].toFixed(1)} <small>avg</small></span></div>`;
+    }).join('') +
+    `<p class="note">Dots are individual fruit · solid tick is this load's average · dashed tick is the ${g ? g.key : 'group'} average · shaded band is a placeholder target range.</p>`;
+}
+
+/* ------------------------------------------------------------------- table */
+function renderTable(){
+  const rows = scope().slice().sort((a,b) => a.id - b.id);
+  els.table.innerHTML = '<thead><tr><th>Ticket</th><th>Day</th><th>Grower</th><th>Source</th><th>Variety</th><th class="num">Bins</th><th class="num">Pressure</th><th class="num">Starch</th><th class="num">SS</th><th class="num">Streif</th></tr></thead><tbody>' +
+    rows.map(t => `<tr><td>${t.id}</td><td>${t.day}</td><td>${t.grower}</td><td>${t.source}</td><td>${t.variety}</td><td class="num">${t.bins}</td><td class="num">${t.p.toFixed(1)}</td><td class="num">${t.st.toFixed(1)}</td><td class="num">${t.ss.toFixed(1)}</td><td class="num">${t.streif.toFixed(2)}</td></tr>`).join('') + '</tbody>';
+}
+
+/* ------------------------------------------------- lens, scrub and pinch */
+let hot = null, suppressClick = false, scrub = null, pinch0 = 0;
+const touches = new Map();
+const noHover = matchMedia('(hover: none)');
+function renderLens(){
+  const L = hot && hot._lens;
+  els.lens.classList.toggle('idle', !L);
+  if (!L){
+    els.lens.textContent = noHover.matches
+      ? 'Drag across the blades · let go to open · pinch to close'
+      : 'Hover a blade to read it · click to open';
+    return;
+  }
+  els.lens.innerHTML = `<span class="l-n">${L.name}</span><span class="l-m">${L.meta}</span>` +
+    KEYS.map(k => `<span class="pill" style="${tone(k, L.o[k])}"><small>${METRICS[k].tag}</small>${L.o[k].toFixed(1)}</span>`).join('');
+}
+function setHot(el, viaTouch){
+  if (el === hot) return;
+  if (hot) hot.classList.remove('hot');
+  hot = el;
+  if (hot){ hot.classList.add('hot'); if (viaTouch && navigator.vibrate) navigator.vibrate(4); }
+  renderLens();
+}
+const bladeAt = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest('.blade') : null; };
+const spreadOf = () => { const [a, b] = [...touches.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+els.stage.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch'){
+    touches.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if (touches.size === 2){ scrub = null; setHot(null); pinch0 = spreadOf(); return; }
+    scrub = {x:e.clientX, y:e.clientY, moved:false};
+  }
+  setHot(bladeAt(e.clientX, e.clientY), e.pointerType === 'touch');
+});
+els.stage.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch'){
+    if (!touches.has(e.pointerId)) return;
+    touches.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if (touches.size >= 2){
+      if (pinch0 && touches.size === 2 && spreadOf() / pinch0 < .72 && state.drilled !== null){ pinch0 = 0; back(); }
+      return;
+    }
+    if (scrub && Math.hypot(e.clientX - scrub.x, e.clientY - scrub.y) > 14) scrub.moved = true;
+  }
+  setHot(bladeAt(e.clientX, e.clientY), e.pointerType === 'touch');
+});
+function endPointer(e){
+  if (e.pointerType !== 'touch'){ if (e.type === 'pointerleave') setHot(null); return; }
+  if (!touches.has(e.pointerId)) return;
+  const multi = touches.size > 1; touches.delete(e.pointerId);
+  const h = hot, go = e.type === 'pointerup' && !multi && scrub && scrub.moved && h;
+  if (touches.size === 0) scrub = null;
+  setHot(null);
+  if (go){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); h._act && h._act(); }
+}
+['pointerup','pointercancel','pointerleave'].forEach(t => els.stage.addEventListener(t, endPointer));
+
+/* ------------------------------------------------------------------ wiring */
+function render(){
+  renderDays(); renderDecks(); renderOrbs(false); renderCrumbs(); renderDetail(); renderTable();
+  if (hot && !hot.isConnected) hot = null;
+  renderLens();
+}
+$('#sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else back(); } });
+addEventListener('resize', () => { renderDays(); renderDecks(); renderOrbs(true); });
+darkMQ.addEventListener('change', () => { renderLegend(); render(); });
+renderLegend(); render();
+})();
+</script>
+</body>
+</html>
