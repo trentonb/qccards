@@ -49,7 +49,19 @@ button,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* header */
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top .days{margin-left:auto}
+.menu-w{position:relative;flex:none}
+.menu{position:absolute;right:0;top:54px;z-index:60;min-width:190px;padding:6px;border-radius:16px;border:1px solid var(--line-2);background:var(--surface);box-shadow:0 14px 34px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:2px;transform-origin:100% 0;transform:scale(.6);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.3,1.5,.5,1),opacity .18s}
+.menu.open{transform:none;opacity:1;pointer-events:auto}
+.mi{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:0 14px;border:0;border-radius:11px;background:transparent;font-size:14px;text-align:left;cursor:pointer}
+.mi:hover{background:var(--surface-2)}
+.mi.live::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.top-l{display:flex;align-items:center;gap:10px}
+.reset{width:46px;height:46px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;color:var(--ink-3);border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);transition:transform .3s cubic-bezier(.3,1.7,.5,1),color .2s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
+.reset.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
+.reset:active{transform:scale(.88)}
+.reset.go svg{animation:pop .4s cubic-bezier(.3,1.7,.5,1)}
 /* glass controls: a translucent track with a draggable lens */
 .seg,.days{position:relative;display:inline-flex;padding:4px;border-radius:999px;border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
 .seg button,.dayc{position:relative;z-index:2;border:0;background:transparent;cursor:pointer;color:var(--ink-2);transition:color .25s;-webkit-tap-highlight-color:transparent}
@@ -63,36 +75,20 @@ button,select{font:inherit;color:inherit}
 .dayc.none .d{color:var(--ink-3);font-weight:400}
 .glass{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:999px;z-index:1;pointer-events:none;background:var(--glass-fill);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);-webkit-backdrop-filter:blur(8px) saturate(1.8);backdrop-filter:blur(8px) saturate(1.8);transform:scale(1);transition:left .55s cubic-bezier(.3,1.45,.5,1),width .55s cubic-bezier(.3,1.45,.5,1),transform .4s cubic-bezier(.3,1.7,.5,1),opacity .25s}
 .glass.drag{transition:transform .18s ease-out,opacity .25s,width .2s;transform:scale(calc(1.06 * var(--sx,1)),calc(1.24 / var(--sx,1)));background:var(--glass-fill-drag)}
-@media (max-width:700px){.top{flex-direction:column;align-items:center}}
+@media (max-width:700px){.top{justify-content:center}.top .days{margin-left:0;order:3}.menu-w{order:2}.wide-only{display:none}}
 
 .sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
 
 /* layout: filters left, fan right on tablets and up */
 .layout{margin-top:14px}
-.tools{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:6px}
-.ord{display:flex;align-items:center;gap:8px}
-.ord label{font-size:13px;color:var(--ink-2)}
-.ord select{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;min-height:38px;padding:5px 8px;font-size:13px}
-.btn.clear{color:var(--ink-3)}
+/* clear-all: a slim vertical pill standing beside the filter orbs */
+.vclear{position:absolute;left:0;top:0;padding:0;border-radius:999px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.03em;white-space:nowrap;color:var(--ink-3);border:1px solid var(--line);background:var(--glass-track);transition:transform .5s cubic-bezier(.25,.9,.3,1.15),height .45s cubic-bezier(.2,.8,.2,1),color .2s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
+.vclear span{writing-mode:vertical-rl;transform:rotate(180deg)}
+.vclear.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
 .btn.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
-.minis{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.minis .btn{flex:1;white-space:nowrap}
-.c-row{display:grid;grid-template-columns:130px minmax(0,560px) 170px;align-items:center;gap:12px;font-size:13px;color:var(--ink-2);margin-top:8px}
-.c-row .cv{font-variant-numeric:tabular-nums;color:var(--ink);text-align:right;white-space:nowrap}
-.c-row .cv b{font-size:15px}
-.c-row .cv .dl{display:inline-block;min-width:44px;color:var(--ink-2)}
-.c-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
-.c-head .vs{color:var(--ink-3);margin:0 4px}
-.c-head small{color:var(--ink-2);font-size:12px}
-@media (max-width:560px){.c-row{grid-template-columns:1fr auto}.c-row svg{grid-column:1 / -1;grid-row:2}}
-.btn.clear.live{color:var(--bg);background:var(--ink);border-color:var(--ink);animation:pop .3s cubic-bezier(.3,1.7,.5,1)}
 @media (min-width:760px){
-  .minis{margin-top:16px}
   .layout{display:grid;grid-template-columns:204px minmax(0,1fr);gap:16px;align-items:start}
   .side{position:sticky;top:12px}
-  .tools{flex-direction:column;align-items:stretch;margin-top:14px}
-  .ord{justify-content:space-between}
-  .ord select{flex:1}
   .side .legend{flex-direction:column;gap:8px;margin-top:16px}
 }
 
@@ -142,7 +138,7 @@ button,select{font:inherit;color:inherit}
 @keyframes pop{from{transform:scale(.8)}to{transform:scale(1)}}
 
 /* stage + cards: a shallow arc around a pivot far below the screen, so every card stays nearly upright */
-.stage{position:relative;overflow:hidden;height:320px;transition:height .7s cubic-bezier(.3,.8,.2,1);margin-top:0;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.stage{position:relative;overflow:hidden;overflow:clip;height:320px;transition:height .7s cubic-bezier(.3,.8,.2,1);margin-top:0;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .stage-in{position:absolute;left:50%;top:0;width:var(--dw,860px);height:520px;margin-left:calc(var(--dw,860px) / -2);transform-origin:50% 0;transform:scale(var(--s,1));transition:transform .6s cubic-bezier(.3,.8,.2,1)}
 .deck{position:absolute;left:50%;top:0;width:0;height:0;--R:1300px;transition:transform .7s cubic-bezier(.3,.8,.2,1)}
 #deckC{z-index:5}
@@ -157,8 +153,7 @@ button,select{font:inherit;color:inherit}
 .blade.up{--lift:-12px;border-color:var(--ink);border-width:2px}
 .blade.dim{opacity:.55}
 .blade.dim.hot{opacity:1}
-.blade.picked{border-color:var(--ink);border-width:1.5px}
-.c-name{font-size:13px;font-weight:650;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-name{font-size:12.5px;font-weight:650;letter-spacing:-.015em;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .c-sub{font-size:11px;color:var(--ink-2);line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .c-top{display:flex;justify-content:space-between;align-items:baseline;gap:4px}
 .c-id{font-size:16px;font-weight:700;line-height:18px;font-variant-numeric:tabular-nums}
@@ -178,25 +173,27 @@ button,select{font:inherit;color:inherit}
 .chip.big .wh{grid-column:1 / -1;margin-top:7px}
 .mrow{display:flex;gap:4px}
 .mchip{flex:1;border-radius:7px;font-size:11px;font-weight:600;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
-/* compare badges */
-.cb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:12px;font-weight:700;flex:none}
-.cb.b{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
-.blade .cb{position:absolute;top:-11px;left:50%;margin-left:-11px;z-index:3;animation:pop .3s cubic-bezier(.3,1.7,.5,1)}
-.blade .cb.b{background:var(--surface)}
 .seg.small button{min-height:34px;padding:4px 13px}
 
-/* detail */
-.detail{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-height:96px;margin-top:8px}
-.detail .d-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.detail .d-t{font-size:17px;font-weight:600}
-.detail .d-m{font-size:13px;color:var(--ink-2)}
-.d-row{display:grid;grid-template-columns:130px minmax(0,560px) 80px;align-items:center;gap:12px;font-size:13px;color:var(--ink-2);margin-top:8px}
-.d-row .rng{font-size:11px;color:var(--ink-3)}
-.d-row .av{text-align:right;font-size:16px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
-.d-row .av small{font-size:11px;font-weight:400;color:var(--ink-3)}
-.note{font-size:12px;color:var(--ink-3);margin:12px 0 0}
-.empty{margin:0;font-size:14px;color:var(--ink-2)}
-@media (max-width:560px){.d-row{grid-template-columns:1fr 64px}.d-row svg{grid-column:1 / -1;grid-row:2}}
+/* ticket detail: rises out of the top of the selected load's card */
+.pop{position:absolute;left:0;top:0;z-index:20;box-sizing:border-box;padding:12px 14px 10px;background:var(--surface);border:1.5px solid var(--ink);border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.30);font-size:calc(12.5px * var(--pz,1));color:var(--ink-2);transform:scale(.12);opacity:0;pointer-events:none;transition:transform .5s cubic-bezier(.3,1.45,.5,1),opacity .22s}
+.pop.on{transform:none;opacity:1;pointer-events:auto}
+.pop-stem{position:absolute;top:100%;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:0 0 2px 2px}
+.pop-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding-right:30px}
+.pop-t{font-size:1.3em;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.pop-m{line-height:1.35}
+.pop-r{display:grid;grid-template-columns:6.4em minmax(0,1fr) 3em;align-items:center;gap:10px;margin-top:6px}
+.pop-r small{display:block;font-size:.85em;color:var(--ink-3)}
+.pop-v{text-align:right;font-size:1.25em;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.pop-n{margin:8px 0 0;font-size:.85em;color:var(--ink-3)}
+.pop-x{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line-2);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;cursor:pointer;padding:0;color:var(--ink-2)}
+/* go back down a level */
+.down{position:absolute;left:50%;bottom:6px;z-index:30;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 12px;border-radius:999px;cursor:pointer;font-size:13px;color:var(--ink);border:1px solid var(--line-2);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);box-shadow:var(--shadow);transform:translate(-50%,14px);opacity:0;pointer-events:none;transition:transform .4s cubic-bezier(.3,1.5,.5,1),opacity .25s;-webkit-tap-highlight-color:transparent}
+.down.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.down:active{transform:translate(-50%,0) scale(.94)}
+.down svg{animation:bob 1.8s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(-1px)}50%{transform:translateY(3px)}}
+@media (prefers-reduced-motion: reduce){.down svg{animation:none}}
 
 /* table */
 details{margin-top:16px;font-size:13px}
@@ -207,18 +204,17 @@ th,td{padding:7px 12px;text-align:left;border-bottom:1px solid var(--line);white
 th{font-weight:600;color:var(--ink-2);font-size:12px}
 td.num,th.num{text-align:right}
 tr:last-child td{border-bottom:0}
-.foot{font-size:12px;color:var(--ink-3);margin-top:20px}
 @media (max-width:560px){
   .page{padding-top:14px}
+  .seg button{padding:6px 11px}
+  .reset{width:42px;height:42px}
+  .top-l{gap:8px}
   .legend .lg-long{display:none}
   .crumbs .hint{display:none}
   .legend{justify-content:center;gap:10px;margin-top:8px;flex-wrap:nowrap;white-space:nowrap}
   .side{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
   .orbs{width:100%}
-  .tools,.minis,.ord{display:contents}
-  .ord label{display:none}
   .side .btn{flex:none;min-height:36px;padding:4px 12px}
-  .ord select{min-height:36px}
   .side .legend{order:5;width:100%}
   .ramp i{width:6px}
   .lens{height:38px;margin-top:2px}
@@ -233,36 +229,32 @@ tr:last-child td{border-bottom:0}
 <div class="page">
   <h1 class="sr-only">Load ticket fan deck</h1>
   <div class="top">
-    <div class="seg" id="period" role="group" aria-label="Period">
-      <button data-p="1">Today</button>
-      <button data-p="3">Last 3 days</button>
-      <button data-p="7">Last 7 days</button>
+    <div class="top-l">
+      <button class="reset" id="resetBtn" aria-label="Home: back to the default view" title="Home: last 7 days, by variety, nothing selected">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5.5h4v5.5"/></svg>
+      </button>
+      <div class="seg" id="period" role="group" aria-label="Period">
+        <button data-p="1">Today</button>
+        <button data-p="3"><span class="wide-only">Last </span>3 days</button>
+        <button data-p="7"><span class="wide-only">Last </span>7 days</button>
+      </div>
     </div>
     <div class="days" id="days" role="group" aria-label="Pick a single day"></div>
+    <div class="menu-w" id="menuW">
+      <button class="reset" id="menuBtn" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="menu" id="menu" role="menu">
+        <button class="mi" id="sndBtn" role="menuitemcheckbox" aria-checked="false">Sound off</button>
+        <button class="mi" id="linkBtn" role="menuitem">Copy link</button>
+      </div>
+    </div>
   </div>
 
   <div class="layout">
   <aside class="side">
-    <div class="orbs" id="orbs"></div>
-    <div class="tools">
-      <button class="btn clear" id="clear">Clear filters</button>
-      <button class="btn" id="cmpBtn" aria-pressed="false">Compare</button>
-      <div class="ord">
-        <label for="sort">Order by</label>
-        <select id="sort">
-          <option value="default">Default</option>
-          <option value="p">Pressure</option>
-          <option value="st">Starch</option>
-          <option value="ss">Soluble solids</option>
-          <option value="streif">Streif index</option>
-        </select>
-      </div>
-    </div>
+    <div class="orbs" id="orbs"><button class="vclear" id="clear"><span></span></button></div>
     <div class="legend" id="legend"></div>
-    <div class="minis">
-      <button class="btn" id="sndBtn" aria-pressed="false">Sound off</button>
-      <button class="btn" id="linkBtn">Copy link</button>
-    </div>
   </aside>
 
   <main class="main">
@@ -284,10 +276,14 @@ tr:last-child td{border-bottom:0}
     <div class="stage-in" id="stageIn">
       <div class="deck" id="deckP"></div>
       <div class="deck" id="deckC"></div>
+      <div class="pop" id="pop" role="dialog" aria-label="Ticket detail"></div>
     </div>
+    <button class="down" id="downBtn">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      <span id="downLbl"></span>
+    </button>
   </div>
 
-  <div class="detail" id="detail"></div>
   </main>
   </div>
 
@@ -296,7 +292,6 @@ tr:last-child td{border-bottom:0}
     <div class="tw"><table id="table"></table></div>
   </details>
 
-  <p class="foot">Group and period averages are the simple mean of the load averages. Target bands are placeholders. Data is generated in <code>buildMockTickets()</code>; swap that function for a real feed.</p>
 </div>
 
 <script>
@@ -380,16 +375,16 @@ const TICKETS = buildMockTickets().map(t => {
 
 /* -------------------------------------------------------------------- state */
 const state = {
-  days: new Set([0,1,2,3,4,5,6]), groupBy: 'grower', sort: 'default',
+  days: new Set([0,1,2,3,4,5,6]), groupBy: 'variety', sort: 'default',
   filters: {source:new Set(), grower:new Set(), variety:new Set()},
   drilled: null, selTicket: null, openOrb: null,
-  compare: false, cmp: [], sound: false, show: 'all'
+  sound: false, show: 'all'
 };
 const $ = s => document.querySelector(s);
 /* two frames later, or 80ms if the tab is not painting */
 function nextFrame(fn){ let done = false; const run = () => { if (!done){ done = true; fn(); } }; requestAnimationFrame(() => requestAnimationFrame(run)); setTimeout(run, 80); }
-const els = {cmpBtn:$('#cmpBtn'), sndBtn:$('#sndBtn'), linkBtn:$('#linkBtn'), days:$('#days'), lens:$('#lens'), orbs:$('#orbs'), clear:$('#clear'), crumbs:$('#crumbs'), legend:$('#legend'), stage:$('#stage'),
-  stageIn:$('#stageIn'), deckP:$('#deckP'), deckC:$('#deckC'), detail:$('#detail'), table:$('#table')};
+const els = {resetBtn:$('#resetBtn'), sndBtn:$('#sndBtn'), linkBtn:$('#linkBtn'), days:$('#days'), lens:$('#lens'), orbs:$('#orbs'), clear:$('#clear'), crumbs:$('#crumbs'), legend:$('#legend'), stage:$('#stage'),
+  stageIn:$('#stageIn'), deckP:$('#deckP'), deckC:$('#deckC'), pop:$('#pop'), down:$('#downBtn'), downLbl:$('#downLbl'), table:$('#table')};
 
 function scope(except, anyDay){
   return TICKETS.filter(t => {
@@ -589,12 +584,15 @@ function renderLegend(){
 }
 
 /* -------------------------------------------------------------------- orbs */
+const SORTS = [['default','Default','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑'], ['streif','Streif','↑']];
 const ORBS = [
-  {k:'groupBy', name:'Blades by', single:true},
-  {k:'source', name:'Source'}, {k:'grower', name:'Grower'}, {k:'variety', name:'Variety'}
+  {k:'groupBy', name:'Blades by', kind:'group'},
+  {k:'source', name:'Source', kind:'filter'}, {k:'grower', name:'Grower', kind:'filter'}, {k:'variety', name:'Variety', kind:'filter'},
+  {k:'sort', name:'Order by', kind:'sort'}
 ];
-const OFF = [0,165,280,395]; let PS = 86, OS = 68;
-const parents = {}; let optEls = []; let caps = [];
+const CAPS = [{txt:'Group', row:0, side:0}, {txt:'Filter', row:2, side:1}, {txt:'Order', row:4, side:4}];
+let PS = 86, OS = 68;
+const parents = {}; let optEls = []; const caps = [];
 function mkOrb(size){
   const o = document.createElement('div');
   o.className = 'orb'; o.setAttribute('role','button'); o.tabIndex = 0;
@@ -612,34 +610,58 @@ function clearFilters(k){
   render();
 }
 ORBS.forEach(ob => {
-  const o = mkOrb(PS); if (ob.single) o.classList.add('lead');
+  const o = mkOrb(PS); if (ob.kind === 'group') o.classList.add('lead');
   parents[ob.k] = o; els.orbs.appendChild(o);
   onAct(o, () => { state.openOrb = state.openOrb === ob.k ? null : ob.k; renderOrbs(true); });
-  if (!ob.single){
+  if (ob.kind !== 'group'){
     const x = document.createElement('span');
     x.className = 'o-x'; x.textContent = '×'; x.setAttribute('role','button'); x.tabIndex = 0;
-    x.setAttribute('aria-label', `Clear ${ob.name.toLowerCase()} filter`);
-    o.appendChild(x); onAct(x, () => clearFilters(ob.k));
+    x.setAttribute('aria-label', ob.kind === 'sort' ? 'Back to default order' : `Clear ${ob.name.toLowerCase()} filter`);
+    o.appendChild(x);
+    onAct(x, () => { if (ob.kind === 'sort'){ state.sort = 'default'; render(); } else clearFilters(ob.k); });
   }
 });
-['Group','Filter'].forEach(txt => { const c = document.createElement('span'); c.className = 'orb-cap'; c.textContent = txt; els.orbs.appendChild(c); caps.push(c); });
+CAPS.forEach(c => { const e = document.createElement('span'); e.className = 'orb-cap'; e.textContent = c.txt; els.orbs.appendChild(e); caps.push(e); });
+/* options carry a small line (s) and a bold line (b) */
 function orbOptions(ob){
-  if (ob.single) return Object.keys(DIMS).map(d => ({v:d, l:DIMS[d].label, n:new Set(scope().map(t => t[d])).size, on:state.groupBy === d}));
+  if (ob.kind === 'group') return Object.keys(DIMS).map(d => ({v:d, s:DIMS[d].label, b:new Set(scope().map(t => t[d])).size, on:state.groupBy === d, say:`Blades by ${DIMS[d].label}`}));
+  if (ob.kind === 'sort') return SORTS.map(([v, l, mark]) => ({v, s:l, b:mark, on:state.sort === v, say:`Order by ${l}${v === 'default' ? '' : ', low to high'}`}));
   const f = state.filters[ob.k], inScope = scope(ob.k);
   const vals = [...new Set(TICKETS.map(t => t[ob.k]))].sort();
-  return [{v:null, l:'All', n:inScope.length, on:f.size === 0}]
-    .concat(vals.map(v => ({v, l:v, n:inScope.filter(t => t[ob.k] === v).length, on:f.has(v)})));
+  return [{v:null, s:'All', b:inScope.length, on:f.size === 0, say:`All, ${inScope.length} loads`}]
+    .concat(vals.map(v => { const n = inScope.filter(t => t[ob.k] === v).length; return {v, s:v, b:n, on:f.has(v), zero:n === 0 && !f.has(v), say:`${v}, ${n} loads`}; }));
 }
-/* positions for the four main orbs (P), the open orb's options (O) and the captions (C) */
+function orbValue(ob){
+  if (ob.kind === 'group') return {val:DIMS[state.groupBy].label, on:false};
+  if (ob.kind === 'sort') return {val:SORTS.find(x => x[0] === state.sort)[1], on:state.sort !== 'default'};
+  const f = state.filters[ob.k];
+  return {val:f.size === 0 ? 'All' : f.size === 1 ? [...f][0] : f.size + ' on', on:f.size > 0};
+}
+function pickOption(ob, cur){
+  if (ob.kind === 'group'){ if (state.groupBy !== cur.v){ state.groupBy = cur.v; closeChild(); state.drilled = null; state.selTicket = null; } }
+  else if (ob.kind === 'sort') state.sort = cur.v;
+  else {
+    const f = state.filters[ob.k];
+    if (cur.v === null) f.clear();
+    else if (f.has(cur.v)) f.delete(cur.v);
+    else if (!cur.zero) f.add(cur.v);
+    else return;
+  }
+  render();
+}
+/* positions for the main orbs (P), the open orb's options (O) and the captions (C) */
 function orbLayout(){
   const W = els.orbs.clientWidth, side = sideMQ.matches;
   const oi = ORBS.findIndex(o => o.k === state.openOrb), list = oi >= 0 ? orbOptions(ORBS[oi]) : [], n = list.length;
-  const P = [], O = [], C = []; let H;
+  const P = [], O = [], C = []; let H, V;
   if (!side){
-    PS = W < 560 ? 70 : 86; OS = W < 560 ? 58 : 68;
-    const k = Math.min(1, (W - PS) / OFF[3]), x0 = W/2 - (OFF[3]*k + PS)/2;
-    ORBS.forEach((ob, i) => P[i] = {x:x0 + OFF[i]*k, y:20});
-    C.push({x:P[0].x + PS/2, y:0}, {x:P[2].x + PS/2, y:0});
+    /* one row: group | three filters | order */
+    PS = W < 560 ? 57 : 84; OS = W < 560 ? 56 : 68;
+    const g = 6, pill = 24, G2 = Math.max(6, Math.min(50, (W - 5*PS - 2*g - pill - 6) / 2)), G1 = G2 + pill + 6;
+    const x0 = (W - (5*PS + G1 + G2 + 2*g)) / 2;
+    [0, PS + G1, 2*PS + G1 + g, 3*PS + G1 + 2*g, 4*PS + G1 + G2 + 2*g].forEach((x, i) => P[i] = {x:x0 + x, y:20});
+    V = {x:P[1].x - pill - 5, y:20, w:pill, h:PS, txt:'Clear'};
+    CAPS.forEach(c => C.push({x:P[c.row].x + PS/2, y:0}));
     const step = Math.min(OS + 8, (W - OS) / Math.max(1, n-1));
     list.forEach((op, j) => {
       const u = n > 1 ? (j - (n-1)/2) / ((n-1)/2) : 0;
@@ -650,7 +672,8 @@ function orbLayout(){
     PS = 80; OS = 60;
     const cols = 3, cell = OS + 6; let y = 0;
     ORBS.forEach((ob, i) => {
-      if (i < 2){ C.push({x:W/2, y}); y += 20; }
+      const cap = CAPS.findIndex(c => c.side === i);
+      if (cap >= 0){ if (i) y += 6; C[cap] = {x:W/2, y}; y += 20; }
       P[i] = {x:(W - PS)/2, y}; y += PS + 12;
       if (i === oi){
         list.forEach((op, j) => {
@@ -659,30 +682,31 @@ function orbLayout(){
         });
         y += Math.ceil(n / cols)*cell + 8;
       }
-      if (i === 0) y += 6;
     });
     H = y;
+    V = {x:P[1].x - 36, y:P[1].y, w:26, h:P[3].y + PS - P[1].y, txt:'Clear filters'};
   }
-  return {P, O, C, H, oi, list};
+  return {P, O, C, H, V, oi, list};
 }
 function renderOrbs(animate){
   const L = orbLayout();
   els.orbs.style.height = L.H + 'px';
   let active = 0;
   ORBS.forEach((ob, i) => {
-    const o = parents[ob.k];
+    const o = parents[ob.k], v = orbValue(ob);
+    if (ob.kind === 'filter' && v.on) active++;
     o.style.width = o.style.height = PS + 'px';
-    let val, on = false;
-    if (ob.single) val = DIMS[state.groupBy].label;
-    else { const f = state.filters[ob.k]; on = f.size > 0; if (on) active++; val = f.size === 0 ? 'All' : f.size === 1 ? [...f][0] : f.size + ' selected'; }
     o.style.transform = `translate(${L.P[i].x}px,${L.P[i].y}px)`;
-    o.children[0].textContent = ob.name; o.children[1].textContent = val;
-    o.classList.toggle('on', on); o.classList.toggle('open', state.openOrb === ob.k);
+    o.children[0].textContent = ob.name; o.children[1].textContent = v.val;
+    o.classList.toggle('on', v.on); o.classList.toggle('open', state.openOrb === ob.k);
     o.setAttribute('aria-expanded', state.openOrb === ob.k);
-    o.setAttribute('aria-label', `${ob.name}: ${val}`);
+    o.setAttribute('aria-label', `${ob.name}: ${v.val}`);
   });
   L.C.forEach((c, i) => { caps[i].style.left = c.x + 'px'; caps[i].style.top = c.y + 'px'; });
-  els.clear.textContent = active ? `Clear filters (${active})` : 'Clear filters';
+  els.clear.style.transform = `translate(${L.V.x}px,${L.V.y}px)`;
+  els.clear.style.width = L.V.w + 'px'; els.clear.style.height = L.V.h + 'px';
+  els.clear.firstElementChild.textContent = active && L.V.h > 120 ? `${L.V.txt} (${active})` : L.V.txt;
+  els.clear.setAttribute('aria-label', active ? `Clear ${active} filter${active === 1 ? '' : 's'}` : 'Clear filters');
   els.clear.classList.toggle('live', active > 0);
   if (animate){ optEls.forEach(e => e.remove()); optEls = []; }
   if (L.oi < 0) return;
@@ -696,24 +720,12 @@ function renderOrbs(animate){
       el.style.transitionDelay = (j*28) + 'ms';
       els.orbs.appendChild(el);
       nextFrame(() => { el.style.opacity = 1; el.style.transform = to; });
-      onAct(el, () => {
-        const cur = orbOptions(ob)[j];
-        if (ob.single){
-          if (state.groupBy !== cur.v){ state.groupBy = cur.v; closeChild(); state.drilled = null; state.selTicket = null; }
-        } else {
-          const f = state.filters[ob.k];
-          if (cur.v === null) f.clear();
-          else if (f.has(cur.v)) f.delete(cur.v);
-          else if (cur.n > 0) f.add(cur.v);
-          else return;
-        }
-        render();
-      });
+      onAct(el, () => pickOption(ob, orbOptions(ob)[j]));
     } else if (el.style.opacity === '1') el.style.transform = to;
-    el.children[0].textContent = op.l; el.children[1].textContent = op.n;
-    el.classList.toggle('on', op.on); el.classList.toggle('zero', op.n === 0 && !op.on);
+    el.children[0].textContent = op.s; el.children[1].textContent = op.b;
+    el.classList.toggle('on', op.on); el.classList.toggle('zero', !!op.zero);
     el.setAttribute('aria-pressed', op.on);
-    el.setAttribute('aria-label', ob.single ? `Blades by ${op.l}, ${op.n} blades` : `${op.l}, ${op.n} loads`);
+    el.setAttribute('aria-label', op.say);
   });
 }
 els.clear.addEventListener('click', e => { e.stopPropagation(); clearFilters(); });
@@ -751,7 +763,7 @@ function syncDeck(deckEl, items, from){
     el._act = it.act; el._lens = it.lens; el._a = it.angle; el._i = i; el.setAttribute('aria-label', it.title);
     deckEl._order.push(el);
     el.style.zIndex = it.z;
-    ['sel','up','dim','picked'].forEach(c => el.classList.toggle(c, !!it[c]));
+    ['sel','up','dim'].forEach(c => el.classList.toggle(c, !!it[c]));
     const apply = () => {
       el.style.transitionDelay = (Math.abs(i - mid) * 20) + 'ms';
       el.classList.remove('enter');
@@ -801,25 +813,9 @@ function back(){
 }
 const tip = o => `pressure ${o.p.toFixed(1)} lb, starch ${o.st.toFixed(1)}, soluble solids ${o.ss.toFixed(1)} °Bx`;
 
-/* compare: snapshots of a group or a load, so picks survive navigation */
-const groupItem = g => ({id:`g:${state.groupBy}:${g.key}`, label:g.label, meta:`${g.sub ? g.sub + ' · ' : ''}${g.n} load${g.n === 1 ? '' : 's'}`,
-  p:g.p, st:g.st, ss:g.ss, streif:g.streif, of:'load averages', vals:{p:g.tickets.map(t => t.p), st:g.tickets.map(t => t.st), ss:g.tickets.map(t => t.ss)}});
-const loadItem = t => ({id:`t:${t.id}`, label:`Ticket ${t.id}`, meta:`Lot ${t.lot} · ${t.grower} · ${t.variety} · ${t.dayShort}`,
-  p:t.p, st:t.st, ss:t.ss, streif:t.streif, of:'fruit', vals:t.samples});
-function pickCmp(item){
-  const i = state.cmp.findIndex(c => c.id === item.id);
-  if (i >= 0) state.cmp.splice(i, 1); else { state.cmp.push(item); if (state.cmp.length > 2) state.cmp.shift(); }
-  tick(); render();
-}
-function cmpMark(item){
-  const i = state.compare ? state.cmp.findIndex(c => c.id === item.id) : -1;
-  if (i >= 0) state.cmp[i] = item;
-  return i < 0 ? '' : `<span class="cb${i ? ' b' : ''}">${'AB'[i]}</span>`;
-}
-
 /* card arc geometry, in design pixels */
 const CARD_H = 206, RAD = Math.PI / 180;
-let groupsNow = [], stageDW = 860, stageH = 320, stageS = 1;
+let groupsNow = [], stageDW = 860, stageH = 320, stageCapH = 320, stageS = 1;
 function arcFor(n, w, narrow){
   const R = narrow ? 800 : 1300, maxDW = narrow ? 430 : 980, minDW = narrow ? 360 : 560;
   const natural = (n - 1) * (w + 10) + w * 1.2 + 24;
@@ -845,22 +841,28 @@ function spinTo(deck, off){
   const g = deck._geo; if (!g) return;
   g.off = Math.max(-g.maxOff, Math.min(g.maxOff, off));
   deck._order.forEach((el, i) => { el._a = g.a0 + i * g.step + g.off; el.style.setProperty('--a', angleFor(deck, el).toFixed(2) + 'deg'); });
+  if (deck === els.deckC) placePop();
 }
 function renderDecks(){
   const gs = groupsNow = computeGroups(), n = gs.length;
   if (state.drilled !== null && !gs.some(g => g.key === state.drilled)){ closeChild(); state.drilled = null; state.selTicket = null; }
   const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
-  const narrow = els.stage.clientWidth < 620, TOP = 40, K = .5;
+  const narrow = els.stage.clientWidth < 620, K = .5;
 
   const gp = arcFor(n, 96, narrow);
   const ts = drilled ? gs[si].tickets.slice().sort((a,b) => state.sort === 'default' ? a.id - b.id : a[state.sort] - b[state.sort]) : [];
   const gc = arcFor(ts.length, 90, narrow);
   /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
+  if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
+  /* 60px of headroom lets the focused card lift and swell; an open ticket needs room above the arc too */
+  const popH = fillPop(drilled ? state.selTicket : null, drilled ? gs[si] : null, narrow);
+  const TOP = 60 + (popH ? popH + 10 : 0);
   gc.k = 1; gc.y = TOP + CARD_H;
   gp.k = drilled ? K : 1;
   gp.y = drilled ? gc.y + gc.drop + 22 + CARD_H * K : TOP + CARD_H;
   stageDW = drilled ? Math.max(gc.dw, gp.dw * K) : gp.dw;
   stageH = gp.y + gp.drop * gp.k + 14;
+  stageCapH = stageH - (popH ? popH + 10 : 0);   /* opening a ticket must not rescale the deck */
   carryOff(els.deckP, gp, state.groupBy, drilled);
   if (drilled) carryOff(els.deckC, gc, state.groupBy + '|' + state.drilled, false);
   els.deckP._geo = gp; els.deckC._geo = drilled ? gc : null;
@@ -868,42 +870,40 @@ function renderDecks(){
   [els.deckP, els.deckC].forEach(d => d.style.setProperty('--R', gp.R + 'px'));
 
   syncDeck(els.deckP, gs.map((g, i) => {
-    const item = groupItem(g), mark = cmpMark(item);
-    return {key:g.key, cls:'group', angle:gp.a0 + i * gp.step + gp.off, z:i + 1, up:drilled && i === si, dim:drilled && i !== si, picked:!!mark,
-      html:`${mark}<span class="c-name">${g.label}</span>${g.sub ? `<span class="c-sub">${g.sub}</span>` : ''}<span class="c-sub">${g.n} load${g.n === 1 ? '' : 's'}</span>${groupChips(g)}`,
-      title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:{name:g.label, meta:item.meta, o:g},
-      act:() => state.compare ? pickCmp(groupItem(g)) : drill(g.key)};
+    return {key:g.key, cls:'group', angle:gp.a0 + i * gp.step + gp.off, z:i + 1, up:drilled && i === si, dim:drilled && i !== si,
+      html:`<span class="c-name">${g.label}</span>${g.sub ? `<span class="c-sub">${g.sub}</span>` : ''}<span class="c-sub">${g.n} load${g.n === 1 ? '' : 's'}</span>${groupChips(g)}`,
+      title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:{name:g.label, meta:`${g.sub ? g.sub + ' · ' : ''}${g.n} load${g.n === 1 ? '' : 's'}`, o:g},
+      act:() => drill(g.key)};
   }), null);
   els.deckP.style.transform = `translate(0,${gp.y.toFixed(1)}px) scale(${gp.k})`;
   els.deckC.style.transform = `translate(0,${gc.y}px)`;
 
   if (drilled){
-    if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
     /* the loads rise out of their group's card in the tray */
     const aSel = (gp.a0 + si * gp.step + gp.off) * RAD;
     const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + gp.R * K * (1 - Math.cos(aSel)) - CARD_H * K * .5};
     syncDeck(els.deckC, ts.map((t, i) => {
-      const mark = cmpMark(loadItem(t)), who = state.groupBy === 'grower' ? t.variety : t.grower;
-      return {key:t.id, cls:'load', angle:gc.a0 + i * gc.step + gc.off, z:t === state.selTicket ? 100 : i + 1, sel:!state.compare && t === state.selTicket, picked:!!mark,
-        html:`${mark}<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
+      const who = state.groupBy === 'grower' ? t.variety : t.grower;
+      return {key:t.id, cls:'load', angle:gc.a0 + i * gc.step + gc.off, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
+        html:`<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
         title:`Ticket ${t.id} · lot ${t.lot} · ${t.grower} · ${t.variety} · ${t.day}: ${tip(t)}`,
         lens:{name:'#' + t.id, meta:`Lot ${t.lot} · ${who} · ${t.dayShort}`, o:t},
         act:() => {
-          if (state.compare){ pickCmp(loadItem(t)); return; }
           state.selTicket = state.selTicket === t ? null : t; render();
-          if (state.selTicket) setTimeout(() => els.detail.scrollIntoView({block:'nearest', behavior:'smooth'}), 60);
+          if (state.selTicket) setTimeout(() => els.stage.scrollIntoView({block:'nearest', behavior:'smooth'}), 80);
         }};
     }), from);
   }
+  placePop(); renderDown();
   fitStage();
 }
 function fitStage(){
   const W = els.stage.clientWidth;
   /* fewer cards means a narrower canvas, so they are drawn larger; in the side layout an open deck still fits one screen */
-  stageS = Math.min(1.4, W / stageDW, sideMQ.matches ? Math.max(.6, (innerHeight - 120) / stageH) : 9);
+  stageS = Math.min(1.4, W / stageDW, sideMQ.matches ? Math.max(.6, (innerHeight - 178) / stageCapH) : 9);
   els.stageIn.style.setProperty('--dw', stageDW + 'px');
   els.stageIn.style.setProperty('--s', stageS.toFixed(4));
-  els.stage.style.height = Math.round(stageH * stageS) + 'px';
+  els.stage.style.height = (Math.round(stageH * stageS) + (state.drilled !== null ? 58 : 0)) + 'px';   /* plus the down button's row */
 }
 
 /* ------------------------------------------------------------------ crumbs */
@@ -911,12 +911,12 @@ function renderCrumbs(){
   const d = DIMS[state.groupBy], gs = groupsNow, total = gs.reduce((a,g) => a + g.n, 0);
   if (state.drilled === null){
     els.crumbs.innerHTML = total
-      ? `<strong>All ${d.plural}</strong><span class="hint">${gs.length} blades · ${total} loads · ${state.compare ? 'compare is on: pick any two blades' : 'select a blade to fan out its loads'}</span>`
+      ? `<strong>All ${d.plural}</strong><span class="hint">${gs.length} blades · ${total} loads</span>`
       : `<strong>No loads</strong><span class="hint">Nothing matches this period and these filters.</span>`;
     return;
   }
   const g = gs.find(x => x.key === state.drilled);
-  els.crumbs.innerHTML = `<button class="btn" id="backBtn">← All ${d.plural}</button><strong>${g.label}</strong><span class="hint">${g.sub ? g.sub + ' · ' : ''}${g.n} loads · ${state.compare ? 'compare is on: pick any two blades' : 'select a load for its samples · Esc to close'}</span>`;
+  els.crumbs.innerHTML = `<button class="btn" id="backBtn">← All ${d.plural}</button><strong>${g.label}</strong><span class="hint">${g.sub ? g.sub + ' · ' : ''}${g.n} loads</span>`;
   $('#backBtn').addEventListener('click', back);
 }
 
@@ -932,51 +932,48 @@ function strip(k, t, g){
   h += `<line x1="${x(t[k]).toFixed(1)}" x2="${x(t[k]).toFixed(1)}" y1="1" y2="29" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>`;
   return h;
 }
-function cmpStrip(k, A, B){
-  const m = METRICS[k], W = 400, x = v => 20 + (v - m.dom[0]) / (m.dom[1] - m.dom[0]) * (W - 28);
-  let h = `<svg viewBox="0 0 ${W} 36" width="100%" role="img" aria-label="${m.name}: A ${A[k].toFixed(1)}, B ${B[k].toFixed(1)}">` +
-    `<line x1="20" x2="${W-8}" y1="18" y2="18" stroke="var(--line-2)" stroke-width="1"/>` +
-    `<text x="2" y="13" font-size="10" font-weight="700" fill="var(--ink-2)">A</text><text x="2" y="31" font-size="10" font-weight="700" fill="var(--ink-2)">B</text>`;
-  A.vals[k].forEach(v => h += `<circle cx="${x(v).toFixed(1)}" cy="9" r="3" fill="${m.dot}" opacity=".45"/>`);
-  B.vals[k].forEach(v => h += `<circle cx="${x(v).toFixed(1)}" cy="27" r="2.6" fill="none" stroke="${m.dot}" stroke-width="1.2" opacity=".6"/>`);
-  h += `<line x1="${x(A[k]).toFixed(1)}" y1="9" x2="${x(B[k]).toFixed(1)}" y2="27" stroke="var(--ink-2)" stroke-width="1.5"/>` +
-    `<circle cx="${x(A[k]).toFixed(1)}" cy="9" r="6" fill="${m.dot}" stroke="var(--surface)" stroke-width="2"/>` +
-    `<circle cx="${x(B[k]).toFixed(1)}" cy="27" r="5" fill="var(--surface)" stroke="${m.dot}" stroke-width="2.5"/></svg>`;
-  return h;
-}
-function renderCompare(){
-  const A = state.cmp[0];
-  if (!A){
-    els.detail.innerHTML = '<p class="empty">Compare is on. Pick any two blades: two growers, two loads, or a load against its group. With one picked, it is compared with everything in view.</p>';
-    return;
-  }
-  const all = scope();
-  const B = state.cmp[1] || Object.assign(summarize(all), {label:'All loads in view', meta:`${all.length} loads`, of:'load averages',
-    vals:{p:all.map(t => t.p), st:all.map(t => t.st), ss:all.map(t => t.ss)}});
-  const sgn = (v, d) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
-  els.detail.innerHTML =
-    `<div class="c-head"><span class="cb">A</span><strong>${A.label}</strong><small>${A.meta}</small><span class="vs">vs</span><span class="cb b">B</span><strong>${B.label}</strong><small>${B.meta}</small></div>` +
-    KEYS.map(k => `<div class="c-row"><span>${METRICS[k].name}<br><span class="rng">${METRICS[k].unit}</span></span>${cmpStrip(k, A, B)}<span class="cv"><b>${A[k].toFixed(1)}</b> vs <b>${B[k].toFixed(1)}</b> <span class="dl">${sgn(A[k] - B[k], 1)}</span></span></div>`).join('') +
-    `<div class="c-row"><span>Streif index</span><span></span><span class="cv"><b>${A.streif.toFixed(2)}</b> vs <b>${B.streif.toFixed(2)}</b> <span class="dl">${sgn(A.streif - B.streif, 2)}</span></span></div>` +
-    `<p class="note">Large markers are the averages (A filled, B ring); small dots are A's ${A.of} above and B's ${B.of} below. The last number is A minus B.</p>`;
-}
-function renderDetail(){
-  if (state.compare){ renderCompare(); return; }
-  const t = state.selTicket;
-  if (!t){
-    els.detail.innerHTML = `<p class="empty">${state.drilled === null
-      ? 'Each blade is the average of every load in that group for the period. Open one to see its loads.'
-      : 'Select a load blade to pull it out and see every sampled fruit.'}</p>`;
-    return;
-  }
-  const g = groupsNow.find(x => x.key === state.drilled);
-  els.detail.innerHTML =
-    `<div class="d-h"><span class="d-t">Ticket ${t.id}</span><span class="d-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} · ${t.bins} bins · Streif ${t.streif.toFixed(2)}</span></div>` +
+/* fills the ticket pop-up and returns its height in design pixels (0 when no ticket is open) */
+function fillPop(t, g, narrow){
+  if (!t){ els.pop.classList.remove('on'); els.pop._for = null; return 0; }
+  els.pop.style.width = (narrow ? 400 : 450) + 'px';
+  els.pop.style.setProperty('--pz', narrow ? 1.18 : 1);
+  els.pop.innerHTML =
+    `<button class="pop-x" id="popX" aria-label="Close ticket">×</button>` +
+    `<div class="pop-h"><span class="pop-t">Ticket ${t.id}</span><span class="pop-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} · ${t.bins} bins · Streif ${t.streif.toFixed(2)}</span></div>` +
     KEYS.map(k => {
-      const m = METRICS[k], s = t.samples[k];
-      return `<div class="d-row"><span>${m.name}<br><span class="rng">${Math.min(...s).toFixed(1)} to ${Math.max(...s).toFixed(1)} ${m.unit}</span></span>${strip(k, t, g)}<span class="av">${t[k].toFixed(1)} <small>avg</small></span></div>`;
+      const m = METRICS[k], v = t.samples[k];
+      return `<div class="pop-r"><span>${m.name}<small>${Math.min(...v).toFixed(1)}–${Math.max(...v).toFixed(1)} ${m.unit}</small></span>${strip(k, t, g)}<span class="pop-v">${t[k].toFixed(1)}</span></div>`;
     }).join('') +
-    `<p class="note">Dots are individual fruit · solid tick is this load's average · dashed tick is the ${g ? g.label : 'group'} average · shaded band is a placeholder target range.</p>`;
+    `<p class="pop-n">Dots are individual fruit · solid tick is this load · dashed tick is the ${g.label} average · band is a placeholder target.</p>` +
+    `<span class="pop-stem" id="popStem"></span>`;
+  $('#popX').addEventListener('click', e => { e.stopPropagation(); down(); });
+  return els.pop.offsetHeight;
+}
+/* sits just above the arc, tied by a stem to the top of its card, and grows out of that point */
+function placePop(){
+  const t = state.selTicket, g = els.deckC._geo, el = t && els.deckC._map && els.deckC._map.get(t.id);
+  if (!t || !g || !el){ els.pop.classList.remove('on'); els.pop._for = null; return; }
+  const a = el._a * RAD, r = g.R + CARD_H * 1.1 + 24;
+  const ax = r * Math.sin(a), ay = g.y + g.R - r * Math.cos(a);
+  const w = els.pop.offsetWidth, h = els.pop.offsetHeight, bottom = g.y - CARD_H - 55;
+  const x = Math.max(-stageDW / 2 + w / 2 + 6, Math.min(stageDW / 2 - w / 2 - 6, ax));
+  const sx = Math.max(14, Math.min(w - 14, ax - x + w / 2)), sh = Math.max(0, ay - bottom);
+  els.pop.style.left = (stageDW / 2 + x - w / 2).toFixed(1) + 'px';
+  els.pop.style.top = (bottom - h).toFixed(1) + 'px';
+  els.pop.style.transformOrigin = `${sx.toFixed(1)}px ${(h + sh).toFixed(1)}px`;
+  const stem = $('#popStem'); if (stem){ stem.style.left = sx.toFixed(1) + 'px'; stem.style.height = sh.toFixed(1) + 'px'; }
+  if (els.pop._for !== t.id){ els.pop._for = t.id; els.pop.classList.remove('on'); nextFrame(() => { if (els.pop._for === t.id) els.pop.classList.add('on'); }); }
+}
+/* one level down: ticket -> loads -> all groups */
+function down(){
+  if (state.selTicket){ state.selTicket = null; tick(); render(); }
+  else back();
+}
+function renderDown(){
+  const on = state.drilled !== null;
+  els.down.classList.toggle('on', on);
+  const txt = state.selTicket ? 'Back to loads' : 'All ' + DIMS[state.groupBy].plural;
+  els.downLbl.textContent = txt; els.down.setAttribute('aria-label', txt); els.down.tabIndex = on ? 0 : -1;
 }
 
 /* ------------------------------------------------------------------- table */
@@ -994,10 +991,7 @@ function renderLens(){
   const L = hot && hot._lens;
   els.lens.classList.toggle('idle', !L);
   if (!L){
-    els.lens.textContent = state.compare ? 'Compare is on · pick any two blades'
-      : els.stage.classList.contains('ovf') ? 'Drag sideways to spin the deck · tap a blade to open'
-      : noHover.matches ? (innerWidth < 560 ? 'Drag or flick across the blades · let go to open' : 'Drag across the blades · flick to riffle · let go to open · pinch to close')
-      : 'Hover a blade to bring it forward · click to open';
+    els.lens.textContent = '';
     return;
   }
   els.lens.innerHTML = `<span class="l-n">${L.name}</span><span class="l-m">${L.meta}</span>` +
@@ -1092,7 +1086,7 @@ els.stage.addEventListener('pointermove', e => {
     if (!touches.has(e.pointerId)) return;
     touches.set(e.pointerId, {x:e.clientX, y:e.clientY});
     if (touches.size >= 2){
-      if (pinch0 && touches.size === 2 && Math.hypot(...pair()) / pinch0 < .72 && state.drilled !== null){ pinch0 = 0; back(); }
+      if (pinch0 && touches.size === 2 && Math.hypot(...pair()) / pinch0 < .72 && state.drilled !== null){ pinch0 = 0; down(); }
       return;
     }
   }
@@ -1145,6 +1139,9 @@ els.stage.addEventListener('wheel', e => {
   d.classList.add('spin'); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => d.classList.remove('spin'), 160);
   spinTo(d, g.off - e.deltaX / ((g.R + g.h / 2) * g.k * stageS) / RAD);
 }, {passive:false});
+/* Focusing a card can scroll a clipped box from the inside, which slid the cards up under the tips.
+   overflow:clip prevents it where supported; this covers the rest. */
+els.stage.addEventListener('scroll', () => { els.stage.scrollTop = 0; els.stage.scrollLeft = 0; });
 els.stage.addEventListener('click', e => {
   if (suppressClick || e.detail === 0) return;
   const el = cardAt(e.clientX, e.clientY);
@@ -1154,14 +1151,26 @@ els.stage.addEventListener('click', e => {
 
 /* ------------------------------------------------------------------ wiring */
 function render(){
-  renderDays(); renderShow(); renderDecks(); renderOrbs(false); renderCrumbs(); renderDetail(); renderTable();
+  renderDays(); renderShow(); renderDecks(); renderOrbs(false); renderCrumbs(); renderTable();
   if (hot && !hot.isConnected) hot = null;
   renderLens();
-  els.cmpBtn.textContent = state.compare ? 'Comparing · done' : 'Compare';
-  els.cmpBtn.classList.toggle('live', state.compare); els.cmpBtn.setAttribute('aria-pressed', state.compare);
   els.sndBtn.textContent = state.sound ? 'Sound on' : 'Sound off';
-  els.sndBtn.classList.toggle('live', state.sound); els.sndBtn.setAttribute('aria-pressed', state.sound);
+  els.sndBtn.classList.toggle('live', state.sound); els.sndBtn.setAttribute('aria-checked', state.sound);
+  els.resetBtn.classList.toggle('live', !isDefault());
   writeURL();
+}
+/* default view: last seven days, blades by variety, nothing filtered, opened or selected */
+function isDefault(){
+  const r = dayRange();
+  return r.i0 === 0 && r.i1 === 6 && state.groupBy === 'variety' && state.sort === 'default' && state.show === 'all'
+    && state.drilled === null && !state.selTicket && Object.values(state.filters).every(f => f.size === 0);
+}
+function resetView(){
+  closeChild(); setDays(0, 6);
+  state.groupBy = 'variety'; state.sort = 'default'; state.show = 'all'; state.drilled = null; state.selTicket = null; state.openOrb = null;
+  Object.values(state.filters).forEach(f => f.clear());
+  els.resetBtn.classList.remove('go'); void els.resetBtn.offsetWidth; els.resetBtn.classList.add('go');
+  tick(); renderOrbs(true); render();
 }
 /* the view lives in the address bar, so a link reopens exactly what you were looking at */
 function writeURL(){
@@ -1187,10 +1196,17 @@ function readURL(){
   }
   state.drilled = q.has('open') ? q.get('open') : null;
   state.selTicket = TICKETS.find(t => String(t.id) === q.get('ticket')) || null;
-  $('#sort').value = state.sort;
 }
 addEventListener('hashchange', () => { closeChild(); readURL(); render(); });
-els.cmpBtn.addEventListener('click', () => { state.compare = !state.compare; state.cmp = []; state.selTicket = null; render(); });
+const menuBtn = $('#menuBtn'), menu = $('#menu');
+function setMenu(open){ menu.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open); }
+menuBtn.addEventListener('click', e => { e.stopPropagation(); setMenu(!menu.classList.contains('open')); });
+menu.addEventListener('click', e => e.stopPropagation());
+document.addEventListener('click', () => setMenu(false));
+els.down.addEventListener('click', e => { e.stopPropagation(); down(); });
+['pointerdown','pointerup'].forEach(t => { els.down.addEventListener(t, e => e.stopPropagation()); els.pop.addEventListener(t, e => e.stopPropagation()); });
+els.pop.addEventListener('click', e => e.stopPropagation());
+els.resetBtn.addEventListener('click', e => { e.stopPropagation(); resetView(); });
 els.sndBtn.addEventListener('click', () => {
   state.sound = !state.sound;
   try { localStorage.setItem('fd-sound', state.sound ? '1' : '0'); } catch (e) {}
@@ -1207,8 +1223,7 @@ els.linkBtn.addEventListener('click', async () => {
 });
 try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
-$('#sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else back(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else down(); } });
 addEventListener('resize', () => { renderDays(); renderShow(); renderDecks(); renderOrbs(true); });
 darkMQ.addEventListener('change', () => { renderLegend(); render(); });
 readURL(); renderLegend(); render();
