@@ -43,7 +43,8 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:radial-gradient(60vw 42vh at 8% 0%,rgba(214,48,49,.15),transparent 70%),radial-gradient(50vw 40vh at 96% 6%,rgba(86,168,64,.14),transparent 70%),radial-gradient(70vw 50vh at 50% 100%,rgba(186,117,23,.09),transparent 70%),var(--bg);min-height:100vh;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-text-size-adjust:100%}
-.page{max-width:1280px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+/* installed as an app the page runs under the status bar, so keep clear of the notch / Dynamic Island */
+.page{max-width:1280px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 button,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -202,7 +203,7 @@ th{font-weight:600;color:var(--ink-2);font-size:12px}
 td.num,th.num{text-align:right}
 tr:last-child td{border-bottom:0}
 @media (max-width:560px){
-  .page{padding-top:14px}
+  .page{padding-top:calc(14px + env(safe-area-inset-top))}
   .seg button{padding:6px 11px}
   .reset{width:42px;height:42px}
   .top-l{gap:8px}
