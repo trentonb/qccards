@@ -57,7 +57,14 @@
 :root[data-theme="dark"]{color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:radial-gradient(60vw 42vh at 8% 0%,rgba(214,48,49,.15),transparent 70%),radial-gradient(50vw 40vh at 96% 6%,rgba(86,168,64,.14),transparent 70%),radial-gradient(70vw 50vh at 50% 100%,rgba(186,117,23,.09),transparent 70%),var(--bg);min-height:100vh;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-text-size-adjust:100%}
+/* The flat page colour sits on <html>; the corner glows are a fixed layer above it. In a Safari tab the area
+   around the clock and Dynamic Island is Safari's own bar, tinted with this flat colour, so the glows fade out
+   over the top edge to meet it without a seam. Installed as an app the page draws under the island itself, so
+   there the glows run all the way up. */
+html{background:var(--bg)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vw 42vh at 8% 0%,rgba(214,48,49,.15),transparent 70%),radial-gradient(50vw 40vh at 96% 6%,rgba(86,168,64,.14),transparent 70%),radial-gradient(70vw 50vh at 50% 100%,rgba(186,117,23,.09),transparent 70%);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 110px);mask-image:linear-gradient(180deg,transparent 0,#000 110px)}
+@media (display-mode: standalone){body::before{-webkit-mask-image:none;mask-image:none}}
+body{background:transparent;min-height:100vh;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-text-size-adjust:100%}
 /* installed as an app the page runs under the status bar, so keep clear of the notch / Dynamic Island */
 .page{max-width:2000px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
