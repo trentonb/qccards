@@ -81,10 +81,6 @@ button,select{font:inherit;color:inherit}
 
 /* layout: filters left, fan right on tablets and up */
 .layout{margin-top:14px}
-/* clear-all: a slim vertical pill standing beside the filter orbs */
-.vclear{position:absolute;left:0;top:0;padding:0;border-radius:999px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.03em;white-space:nowrap;color:var(--ink-3);border:1px solid var(--line);background:var(--glass-track);transition:transform .5s cubic-bezier(.25,.9,.3,1.15),height .45s cubic-bezier(.2,.8,.2,1),color .2s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
-.vclear span{writing-mode:vertical-rl;transform:rotate(180deg)}
-.vclear.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
 .btn.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
 @media (min-width:760px){
   .layout{display:grid;grid-template-columns:204px minmax(0,1fr);gap:16px;align-items:start}
@@ -173,7 +169,13 @@ button,select{font:inherit;color:inherit}
 .chip.big .wh{grid-column:1 / -1;margin-top:7px}
 .mrow{display:flex;gap:4px}
 .mchip{flex:1;border-radius:7px;font-size:11px;font-weight:600;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
-.seg.small button{min-height:34px;padding:4px 13px}
+.seg.small button{min-height:38px;padding:3px 13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1.1}
+/* each measure's color ramp, low to high, under its letter: the switch doubles as the legend */
+.rb{display:flex;gap:1px}
+.rb i{display:block;width:5px;height:4px}
+.rb i:first-child{border-radius:2px 0 0 2px}.rb i:last-child{border-radius:0 2px 2px 0}
+.menu .legend{flex-direction:column;align-items:flex-start;gap:8px;margin:4px 0 0;padding:12px 14px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.menu .legend .lg-long{display:inline}
 
 /* ticket detail: rises out of the top of the selected load's card */
 .pop{position:absolute;left:0;top:0;z-index:20;box-sizing:border-box;padding:12px 14px 10px;background:var(--surface);border:1.5px solid var(--ink);border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.30);font-size:calc(12.5px * var(--pz,1));color:var(--ink-2);transform:scale(.12);opacity:0;pointer-events:none;transition:transform .5s cubic-bezier(.3,1.45,.5,1),opacity .22s}
@@ -247,14 +249,14 @@ tr:last-child td{border-bottom:0}
       <div class="menu" id="menu" role="menu">
         <button class="mi" id="sndBtn" role="menuitemcheckbox" aria-checked="false">Sound off</button>
         <button class="mi" id="linkBtn" role="menuitem">Copy link</button>
+        <div class="legend" id="legend"></div>
       </div>
     </div>
   </div>
 
   <div class="layout">
   <aside class="side">
-    <div class="orbs" id="orbs"><button class="vclear" id="clear"><span></span></button></div>
-    <div class="legend" id="legend"></div>
+    <div class="orbs" id="orbs"></div>
   </aside>
 
   <main class="main">
@@ -263,9 +265,9 @@ tr:last-child td{border-bottom:0}
     <span class="grow"></span>
     <div class="seg small" id="show" role="group" aria-label="Show on cards">
       <button data-k="all">All</button>
-      <button data-k="p">P</button>
-      <button data-k="st">St</button>
-      <button data-k="ss">SS</button>
+      <button data-k="p" title="Pressure (lb)">P<i class="rb"></i></button>
+      <button data-k="st" title="Starch (1–6)">St<i class="rb"></i></button>
+      <button data-k="ss" title="Soluble solids (°Bx)">SS<i class="rb"></i></button>
     </div>
   </div>
 
@@ -383,7 +385,7 @@ const state = {
 const $ = s => document.querySelector(s);
 /* two frames later, or 80ms if the tab is not painting */
 function nextFrame(fn){ let done = false; const run = () => { if (!done){ done = true; fn(); } }; requestAnimationFrame(() => requestAnimationFrame(run)); setTimeout(run, 80); }
-const els = {resetBtn:$('#resetBtn'), sndBtn:$('#sndBtn'), linkBtn:$('#linkBtn'), days:$('#days'), lens:$('#lens'), orbs:$('#orbs'), clear:$('#clear'), crumbs:$('#crumbs'), legend:$('#legend'), stage:$('#stage'),
+const els = {resetBtn:$('#resetBtn'), sndBtn:$('#sndBtn'), linkBtn:$('#linkBtn'), days:$('#days'), lens:$('#lens'), orbs:$('#orbs'),  crumbs:$('#crumbs'), legend:$('#legend'), stage:$('#stage'),
   stageIn:$('#stageIn'), deckP:$('#deckP'), deckC:$('#deckC'), pop:$('#pop'), down:$('#downBtn'), downLbl:$('#downLbl'), table:$('#table')};
 
 function scope(except, anyDay){
@@ -580,7 +582,8 @@ function renderLegend(){
   els.legend.innerHTML = KEYS.map(k => {
     const m = METRICS[k];
     return `<span class="lg"><span class="ramp">${m[mode].f.map(c => `<i style="background:${c}"></i>`).join('')}</span><span>${m.name}<span class="lg-long"> (${m.unit})</span></span></span>`;
-  }).join('') + '<span class="lg lg-long" style="color:var(--ink-3)">Chip color runs low to high</span>';
+  }).join('') + '<span class="lg lg-long" style="color:var(--ink-3)">Color runs low to high</span>';
+  document.querySelectorAll('#show button[data-k]').forEach(b => { const rb = b.querySelector('.rb'); if (rb) rb.innerHTML = METRICS[b.dataset.k][mode].f.map(c => `<i style="background:${c}"></i>`).join(''); });
 }
 
 /* -------------------------------------------------------------------- orbs */
@@ -653,14 +656,13 @@ function pickOption(ob, cur){
 function orbLayout(){
   const W = els.orbs.clientWidth, side = sideMQ.matches;
   const oi = ORBS.findIndex(o => o.k === state.openOrb), list = oi >= 0 ? orbOptions(ORBS[oi]) : [], n = list.length;
-  const P = [], O = [], C = []; let H, V;
+  const P = [], O = [], C = []; let H;
   if (!side){
     /* one row: group | three filters | order */
-    PS = W < 560 ? 57 : 84; OS = W < 560 ? 56 : 68;
-    const g = 6, pill = 24, G2 = Math.max(6, Math.min(50, (W - 5*PS - 2*g - pill - 6) / 2)), G1 = G2 + pill + 6;
+    PS = W < 560 ? 62 : 84; OS = W < 560 ? 56 : 68;
+    const g = 6, G2 = Math.max(6, Math.min(50, (W - 5*PS - 2*g) / 2)), G1 = G2;
     const x0 = (W - (5*PS + G1 + G2 + 2*g)) / 2;
     [0, PS + G1, 2*PS + G1 + g, 3*PS + G1 + 2*g, 4*PS + G1 + G2 + 2*g].forEach((x, i) => P[i] = {x:x0 + x, y:20});
-    V = {x:P[1].x - pill - 5, y:20, w:pill, h:PS, txt:'Clear'};
     CAPS.forEach(c => C.push({x:P[c.row].x + PS/2, y:0}));
     const step = Math.min(OS + 8, (W - OS) / Math.max(1, n-1));
     list.forEach((op, j) => {
@@ -684,17 +686,14 @@ function orbLayout(){
       }
     });
     H = y;
-    V = {x:P[1].x - 36, y:P[1].y, w:26, h:P[3].y + PS - P[1].y, txt:'Clear filters'};
   }
-  return {P, O, C, H, V, oi, list};
+  return {P, O, C, H, oi, list};
 }
 function renderOrbs(animate){
   const L = orbLayout();
   els.orbs.style.height = L.H + 'px';
-  let active = 0;
   ORBS.forEach((ob, i) => {
     const o = parents[ob.k], v = orbValue(ob);
-    if (ob.kind === 'filter' && v.on) active++;
     o.style.width = o.style.height = PS + 'px';
     o.style.transform = `translate(${L.P[i].x}px,${L.P[i].y}px)`;
     o.children[0].textContent = ob.name; o.children[1].textContent = v.val;
@@ -703,11 +702,6 @@ function renderOrbs(animate){
     o.setAttribute('aria-label', `${ob.name}: ${v.val}`);
   });
   L.C.forEach((c, i) => { caps[i].style.left = c.x + 'px'; caps[i].style.top = c.y + 'px'; });
-  els.clear.style.transform = `translate(${L.V.x}px,${L.V.y}px)`;
-  els.clear.style.width = L.V.w + 'px'; els.clear.style.height = L.V.h + 'px';
-  els.clear.firstElementChild.textContent = active && L.V.h > 120 ? `${L.V.txt} (${active})` : L.V.txt;
-  els.clear.setAttribute('aria-label', active ? `Clear ${active} filter${active === 1 ? '' : 's'}` : 'Clear filters');
-  els.clear.classList.toggle('live', active > 0);
   if (animate){ optEls.forEach(e => e.remove()); optEls = []; }
   if (L.oi < 0) return;
   const ob = ORBS[L.oi];
@@ -728,7 +722,6 @@ function renderOrbs(animate){
     el.setAttribute('aria-label', op.say);
   });
 }
-els.clear.addEventListener('click', e => { e.stopPropagation(); clearFilters(); });
 document.addEventListener('click', () => { if (state.openOrb){ state.openOrb = null; renderOrbs(true); } });
 
 /* ------------------------------------------------------------------- decks */
