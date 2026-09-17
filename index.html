@@ -1148,6 +1148,8 @@ els.stage.addEventListener('pointermove', e => {
     if (live.pan){ spinTo(live.deck, live.off0 + th - live.th0); return; }
   }
   if (scrub && Math.hypot(e.clientX - scrub.x, e.clientY - scrub.y) > 14) scrub.moved = true;
+  /* after a wheel step the focus belongs to the wheel until the mouse really moves */
+  if (wheelPin){ if (Math.hypot(e.clientX - wheelPin.x, e.clientY - wheelPin.y) < 12) return; wheelPin = null; }
   setHot(cardAt(e.clientX, e.clientY), true);
 });
 function endPointer(e){
@@ -1160,7 +1162,7 @@ function endPointer(e){
     else sc.deck.classList.remove('spin');
     return;
   }
-  if (e.pointerType !== 'touch'){ if (e.type === 'pointerleave') setHot(null); if (e.type === 'pointerup') scrub = null; return; }
+  if (e.pointerType !== 'touch'){ if (e.type === 'pointerleave'){ wheelPin = null; setHot(null); } if (e.type === 'pointerup') scrub = null; return; }
   if (!touches.has(e.pointerId)) return;
   const multi = touches.size > 1; touches.delete(e.pointerId);
   const sc = scrub, h = hot, up = e.type === 'pointerup' && !multi && sc && sc.moved;
@@ -1173,11 +1175,33 @@ function endPointer(e){
   setHot(null);
   if (up && h){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); h._act && h._act(); }
 }
-/* trackpads and tilt wheels spin a crowded deck too */
-let wheelTimer = 0;
+/* Over the cards, the mouse wheel steps the focus from card to card (turning a crowded deck to keep it in
+   view); a sideways trackpad swipe spins a crowded deck directly. Anywhere else the page scrolls as usual. */
+let wheelTimer = 0, wheelAcc = 0, wheelPin = null;
+function wheelStep(d, dir, x, y){
+  const g = d._geo, under = cardAt(x, y);
+  const cur = hot && hot.parentNode === d ? hot._i : under && under.parentNode === d ? under._i : (dir > 0 ? -1 : g.n);
+  const ni = Math.max(0, Math.min(g.n - 1, cur + dir)), el = d._order[ni];
+  if (!el) return;
+  if (g.maxOff > 0){
+    const deg = 1 / (g.R + g.h / 2) / RAD, vis = (g.dw / 2 - g.w * .62) * deg, a = g.a0 + ni * g.step + g.off;
+    if (a > vis) spinTo(d, g.off - (a - vis)); else if (a < -vis) spinTo(d, g.off + (-vis - a));
+  }
+  wheelPin = {x, y}; setHot(el, true);
+}
 els.stage.addEventListener('wheel', e => {
   const d = bandDeck(e.clientX, e.clientY);
-  if (!d || !d._geo.maxOff || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+  if (!d) return;
+  if (Math.abs(e.deltaY) >= Math.abs(e.deltaX)){
+    if (d._geo.n < 2) return;
+    e.preventDefault(); stopCoast();
+    wheelAcc += e.deltaY * (e.deltaMode === 1 ? 33 : 1);   /* lines to pixels */
+    if (Math.abs(wheelAcc) < 60) return;                    /* one notch of a mouse wheel is about 100 */
+    const dir = Math.sign(wheelAcc); wheelAcc = 0;
+    wheelStep(d, dir, e.clientX, e.clientY);
+    return;
+  }
+  if (!d._geo.maxOff) return;
   e.preventDefault(); stopCoast();
   const g = d._geo;
   d.classList.add('spin'); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => d.classList.remove('spin'), 160);
@@ -1188,7 +1212,8 @@ els.stage.addEventListener('wheel', e => {
 els.stage.addEventListener('scroll', () => { els.stage.scrollTop = 0; els.stage.scrollLeft = 0; });
 els.stage.addEventListener('click', e => {
   if (suppressClick || e.detail === 0) return;
-  const el = cardAt(e.clientX, e.clientY);
+  const el = (wheelPin && hot) || cardAt(e.clientX, e.clientY);   /* a click opens the card the wheel landed on */
+  wheelPin = null;
   if (el && el._act) el._act();
 });
 ['pointerup','pointercancel','pointerleave'].forEach(t => els.stage.addEventListener(t, endPointer));
