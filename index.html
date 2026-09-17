@@ -73,6 +73,11 @@ button,select{font:inherit;color:inherit}
 .reset{width:46px;height:46px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;color:var(--ink-3);border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);transition:transform .3s cubic-bezier(.3,1.7,.5,1),color .2s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
 .reset.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
 .reset:active{transform:scale(.88)}
+.reset.busy svg{animation:turn .8s linear infinite}
+@keyframes turn{to{transform:rotate(360deg)}}
+/* Refresh sits directly below Home, in the free corner beside the first filter orb */
+.top-l{position:relative}
+@media (min-width:701px){#refreshBtn{position:absolute;left:0;top:calc(100% + 51px);z-index:6}}
 .reset.go svg{animation:pop .4s cubic-bezier(.3,1.7,.5,1)}
 /* glass controls: a translucent track with a draggable lens */
 .seg,.days{position:relative;display:inline-flex;padding:4px;border-radius:999px;border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
@@ -222,7 +227,8 @@ tr:last-child td{border-bottom:0}
 @media (max-width:560px){
   .page{padding-top:calc(14px + env(safe-area-inset-top))}
   .seg button{padding:6px 11px}
-  .reset{width:42px;height:42px}
+  .reset{width:38px;height:38px}
+  .top-l{gap:6px}
   .top-l{gap:8px}
   .crumbs .hint,.crumbs .btn{display:none}   /* the down arrow under the deck already goes back */
   .bar{flex-wrap:nowrap}
@@ -247,6 +253,9 @@ tr:last-child td{border-bottom:0}
     <div class="top-l">
       <button class="reset" id="resetBtn" aria-label="Home: back to the default view" title="Home">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5.5h4v5.5"/></svg>
+      </button>
+      <button class="reset" id="refreshBtn" aria-label="Refresh data" title="Refresh">
+        <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>
       </button>
       <div class="seg" id="period" role="group" aria-label="Period">
         <button data-p="1">Today</button>
@@ -396,7 +405,11 @@ function buildMockTickets(){
   return out;
 }
 const mean = a => a.reduce((x,y) => x+y, 0) / a.length;
-const TICKETS = buildMockTickets().map(t => {
+/* The one place data comes from. Swap the body for a fetch of the real feed; everything else only sees TICKETS. */
+async function loadTickets(){
+  return buildMockTickets().map(t => { KEYS.forEach(k => t[k] = mean(t.samples[k])); return t; });
+}
+let TICKETS = buildMockTickets().map(t => {
   KEYS.forEach(k => t[k] = mean(t.samples[k]));
   return t;
 });
@@ -496,13 +509,17 @@ const segLens = document.createElement('span'), dayLens = document.createElement
 segLens.className = dayLens.className = 'glass';
 segEl.prepend(segLens); els.days.appendChild(dayLens);
 const dayCells = [];
-for (let d = 6; d >= 0; d--){
-  const dt = new Date(); dt.setDate(dt.getDate() - d);
-  const b = document.createElement('button');
-  b.className = 'dayc'; b._label = `${dt.toLocaleDateString('en-US', {weekday:'short'})} ${dt.getMonth()+1}/${dt.getDate()}`;
-  b.innerHTML = `<span class="w">${d === 0 ? 'Today' : dt.toLocaleDateString('en-US', {weekday:'short'})}</span><span class="d">${dt.getDate()}</span>`;
-  els.days.appendChild(b); dayCells.push(b);
+for (let d = 6; d >= 0; d--){ const b = document.createElement('button'); b.className = 'dayc'; els.days.appendChild(b); dayCells.push(b); }
+/* the strip always ends on today, so it is re-stamped on every refresh (the app may stay open past midnight) */
+function stampDays(){
+  dayCells.forEach((b, i) => {
+    const d = 6 - i, dt = new Date(); dt.setDate(dt.getDate() - d);
+    const wk = dt.toLocaleDateString('en-US', {weekday:'short'});
+    b._label = `${wk} ${dt.getMonth()+1}/${dt.getDate()}`;
+    b.innerHTML = `<span class="w">${d === 0 ? 'Today' : wk}</span><span class="d">${dt.getDate()}</span>`;
+  });
 }
+stampDays();
 const showEl = $('#show'), showBtns = [...showEl.querySelectorAll('button')], showLens = document.createElement('span');
 showLens.className = 'glass'; showEl.prepend(showLens);
 function renderShow(){
@@ -1062,6 +1079,7 @@ function renderTable(){
 }
 
 /* ------------------------------------------------- lens, scrub and pinch */
+let lensNote = '';
 let hot = null, suppressClick = false, scrub = null, pinch0 = 0, coast = 0, idleTimer = 0;
 const touches = new Map();
 const noHover = matchMedia('(hover: none)');
@@ -1069,7 +1087,7 @@ function renderLens(){
   const L = hot && hot._lens;
   els.lens.classList.toggle('idle', !L);
   if (!L){
-    els.lens.textContent = '';
+    els.lens.textContent = lensNote;
     return;
   }
   els.lens.innerHTML = `<span class="l-n">${L.name}</span><span class="l-m">${L.meta}</span>` +
@@ -1410,6 +1428,26 @@ els.tblBtn.addEventListener('click', e => {
   e.stopPropagation(); state.table = !state.table; tick(); render();
   if (state.table) setTimeout(() => els.tableWrap.scrollIntoView({block:'nearest', behavior:'smooth'}), 60);
 });
+/* Refresh: reload the data and keep the view exactly as it is. Also runs when the app comes back to the
+   front after a while, so an iPad left on the counter is not showing this morning's numbers. */
+const refreshBtn = $('#refreshBtn'); let lastRefresh = Date.now(), noteTimer = 0;
+async function refreshData(quiet){
+  if (refreshBtn.classList.contains('busy')) return;
+  refreshBtn.classList.add('busy'); const t0 = performance.now(); let ok = true;
+  try { TICKETS = await loadTickets(); } catch (e) { ok = false; }
+  await new Promise(r => setTimeout(r, Math.max(0, 500 - (performance.now() - t0))));   /* long enough to see it happened */
+  refreshBtn.classList.remove('busy');
+  if (ok){
+    lastRefresh = Date.now(); stampDays();
+    if (state.selTicket) state.selTicket = TICKETS.find(t => t.id === state.selTicket.id) || null;
+  }
+  lensNote = ok ? 'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}) : 'Could not refresh. Showing the last data.';
+  clearTimeout(noteTimer); noteTimer = setTimeout(() => { lensNote = ''; renderLens(); }, ok ? 2600 : 6000);
+  if (!quiet) tick();
+  render();
+}
+refreshBtn.addEventListener('click', e => { e.stopPropagation(); refreshData(false); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastRefresh > 5 * 60 * 1000) refreshData(true); });
 els.resetBtn.addEventListener('click', e => { e.stopPropagation(); resetView(); });
 els.sndBtn.addEventListener('click', () => {
   state.sound = !state.sound;
