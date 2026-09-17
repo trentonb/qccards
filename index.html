@@ -75,9 +75,6 @@ button,select{font:inherit;color:inherit}
 .reset:active{transform:scale(.88)}
 .reset.busy svg{animation:turn .8s linear infinite}
 @keyframes turn{to{transform:rotate(360deg)}}
-/* Refresh sits directly below Home, in the free corner beside the first filter orb */
-.top-l{position:relative}
-@media (min-width:701px){#refreshBtn{position:absolute;left:0;top:calc(100% + 51px);z-index:6}}
 .reset.go svg{animation:pop .4s cubic-bezier(.3,1.7,.5,1)}
 /* glass controls: a translucent track with a draggable lens */
 .seg,.days{position:relative;display:inline-flex;padding:4px;border-radius:999px;border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
@@ -92,7 +89,8 @@ button,select{font:inherit;color:inherit}
 .dayc.none .d{color:var(--ink-3);font-weight:400}
 .glass{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:999px;z-index:1;pointer-events:none;background:var(--glass-fill);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);-webkit-backdrop-filter:blur(8px) saturate(1.8);backdrop-filter:blur(8px) saturate(1.8);transform:scale(1);transition:left .55s cubic-bezier(.3,1.45,.5,1),width .55s cubic-bezier(.3,1.45,.5,1),transform .4s cubic-bezier(.3,1.7,.5,1),opacity .25s}
 .glass.drag{transition:transform .18s ease-out,opacity .25s,width .2s;transform:scale(calc(1.06 * var(--sx,1)),calc(1.24 / var(--sx,1)));background:var(--glass-fill-drag)}
-@media (min-width:701px) and (max-width:899px){.dayc{width:clamp(40px,5.6vw,46px)}.top{gap:10px}}
+/* upright iPad: Home, Refresh, period, days and the menu share one row */
+@media (min-width:701px) and (max-width:899px){.dayc{width:clamp(40px,5.6vw,46px)}.top{gap:8px}.top-l{gap:8px}.reset{width:40px;height:40px}.seg button{padding:6px 12px}}
 @media (max-width:700px){.top{justify-content:center}.top .days{margin-left:0;order:3}.menu-w{order:2}.wide-only{display:none}}
 
 .sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
