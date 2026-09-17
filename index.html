@@ -310,7 +310,7 @@ const darkMQ = matchMedia('(prefers-color-scheme: dark)');
 const calmMQ = matchMedia('(prefers-reduced-motion: reduce)');
 
 /* --------------------------------------------------------------------- data */
-/* Ticket shape: {id, daysAgo, day, dayShort, grower, source, variety, block, bins,
+/* Ticket shape: {id, daysAgo, ts (minutes, for ordering), time, day, dayShort, grower, source, variety, block, bins,
    lot, samples:{p:[],st:[],ss:[]}}. Averages and Streif are derived below. */
 function buildMockTickets(){
   let seed = 41;
@@ -344,7 +344,9 @@ function buildMockTickets(){
         s.ss.push(clamp(11.6 + 3*t + g()*.8, 9.5, 16.5));
       }
       id += 1 + Math.floor(rnd()*3);
-      out.push({id, daysAgo,
+      const mins = Math.round(390 + (j + rnd()*.8) * (660 / n));   /* 6:30am to 5:30pm, in arrival order */
+      out.push({id, daysAgo, ts: -daysAgo*1440 + mins,
+        time: String(Math.floor(mins/60)).padStart(2,'0') + ':' + String(mins % 60).padStart(2,'0'),
         day: d.toLocaleDateString('en-US',{weekday:'short'}) + ' ' + (d.getMonth()+1) + '/' + d.getDate(),
         dayShort: (d.getMonth()+1) + '/' + d.getDate(),
         grower: gr.n, source: gr.s, variety,
@@ -396,6 +398,8 @@ function trendOf(ts){
   KEYS.forEach(k => o[k] = [6,5,4,3,2,1,0].map(d => { const day = ts.filter(t => t.daysAgo === d); return day.length ? mean(day.map(t => t[k])) : null; }));
   return o;
 }
+/* loads: received date and time by default (oldest left), ticket number for Name, else the chosen measure */
+const loadCmp = (a, b) => state.sort === 'default' ? a.ts - b.ts : state.sort === 'name' ? a.id - b.id : a[state.sort] - b[state.sort];
 function computeGroups(){
   const m = new Map();
   scope().forEach(t => { const k = t[state.groupBy]; (m.get(k) || m.set(k, []).get(k)).push(t); });
@@ -403,9 +407,10 @@ function computeGroups(){
   const gs = [...m].map(([key, ts]) => Object.assign(summarize(ts), {key, tickets: ts,
     label: state.groupBy === 'lot' ? 'Lot ' + key : key, sub: state.groupBy === 'lot' ? ts[0].grower : '',
     trend: trendOf(week.filter(t => t[state.groupBy] === key)),
-    order: state.groupBy === 'day' ? -ts[0].daysAgo : key}));
-  gs.sort((a,b) => state.sort === 'default'
-    ? (typeof a.order === 'number' ? a.order - b.order : a.order.localeCompare(b.order))
+    last: Math.max(...ts.map(t => t.ts))}));
+  /* default: by each group's most recent load, oldest on the left, newest on the right */
+  gs.sort((a,b) => state.sort === 'default' || (state.sort === 'name' && state.groupBy === 'day') ? a.last - b.last
+    : state.sort === 'name' ? a.key.localeCompare(b.key, undefined, {numeric:true})
     : a[state.sort] - b[state.sort]);
   return gs;
 }
@@ -563,7 +568,7 @@ glassDrag(segEl, segLens, segBtns, {
   tap: i => { setDays(7 - +segBtns[i].dataset.p, 6); render(); }
 });
 /* -------------------------------------------------------------------- orbs */
-const SORTS = [['default','Default','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑'], ['streif','Streif','↑']];
+const SORTS = [['default','Date','→'], ['name','Name','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑'], ['streif','Streif','↑']];
 const ORBS = [
   {k:'groupBy', name:'Blades by', kind:'group'},
   {k:'source', name:'Source', kind:'filter'}, {k:'grower', name:'Grower', kind:'filter'}, {k:'variety', name:'Variety', kind:'filter'},
@@ -604,7 +609,7 @@ CAPS.forEach(c => { const e = document.createElement('span'); e.className = 'orb
 /* options carry a small line (s) and a bold line (b) */
 function orbOptions(ob){
   if (ob.kind === 'group') return Object.keys(DIMS).map(d => ({v:d, s:DIMS[d].label, b:new Set(scope().map(t => t[d])).size, on:state.groupBy === d, say:`Blades by ${DIMS[d].label}`}));
-  if (ob.kind === 'sort') return SORTS.map(([v, l, mark]) => ({v, s:l, b:mark, on:state.sort === v, say:`Order by ${l}${v === 'default' ? '' : ', low to high'}`}));
+  if (ob.kind === 'sort') return SORTS.map(([v, l, mark]) => ({v, s:l, b:mark, on:state.sort === v, say:`Order by ${l}${v === 'default' ? ', oldest to newest' : v === 'name' ? '' : ', low to high'}`}));
   const f = state.filters[ob.k], inScope = scope(ob.k);
   const vals = [...new Set(TICKETS.map(t => t[ob.k]))].sort();
   return [{v:null, s:'All', b:inScope.length, on:f.size === 0, say:`All, ${inScope.length} loads`}]
@@ -819,7 +824,7 @@ function renderDecks(){
   const narrow = els.stage.clientWidth < 620, K = .5;
 
   const gp = arcFor(n, 96, narrow);
-  const ts = drilled ? gs[si].tickets.slice().sort((a,b) => state.sort === 'default' ? a.id - b.id : a[state.sort] - b[state.sort]) : [];
+  const ts = drilled ? gs[si].tickets.slice().sort(loadCmp) : [];
   const gc = arcFor(ts.length, 90, narrow);
   /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
   if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
@@ -854,9 +859,9 @@ function renderDecks(){
     syncDeck(els.deckC, ts.map((t, i) => {
       const who = state.groupBy === 'grower' ? t.variety : t.grower;
       return {key:t.id, cls:'load', angle:gc.a0 + i * gc.step + gc.off, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
-        html:`<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
+        html:`<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${state.days.size === 1 ? t.time : t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
         title:`Ticket ${t.id} · lot ${t.lot} · ${t.grower} · ${t.variety} · ${t.day}: ${tip(t)}`,
-        lens:{name:'#' + t.id, meta:`Lot ${t.lot} · ${who} · ${t.dayShort}`, o:t},
+        lens:{name:'#' + t.id, meta:`Lot ${t.lot} · ${who} · ${t.dayShort} ${t.time}`, o:t},
         act:() => {
           state.selTicket = state.selTicket === t ? null : t; render();
           if (state.selTicket) setTimeout(() => els.stage.scrollIntoView({block:'nearest', behavior:'smooth'}), 80);
@@ -908,7 +913,7 @@ function fillPop(t, g, narrow){
   els.pop.style.setProperty('--pz', narrow ? 1.18 : 1);
   els.pop.innerHTML =
     `<button class="pop-x" id="popX" aria-label="Close ticket">×</button>` +
-    `<div class="pop-h"><span class="pop-t">Ticket ${t.id}</span><span class="pop-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} · ${t.bins} bins · Streif ${t.streif.toFixed(2)}</span></div>` +
+    `<div class="pop-h"><span class="pop-t">Ticket ${t.id}</span><span class="pop-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} ${t.time} · ${t.bins} bins · Streif ${t.streif.toFixed(2)}</span></div>` +
     KEYS.map(k => {
       const m = METRICS[k], v = t.samples[k];
       return `<div class="pop-r"><span>${m.name}<small>${Math.min(...v).toFixed(1)}–${Math.max(...v).toFixed(1)} ${m.unit}</small></span>${strip(k, t, g)}<span class="pop-v">${t[k].toFixed(1)}</span></div>`;
@@ -947,9 +952,9 @@ function renderDown(){
 
 /* ------------------------------------------------------------------- table */
 function renderTable(){
-  const rows = scope().slice().sort((a,b) => state.sort === 'default' ? a.id - b.id : a[state.sort] - b[state.sort]);   /* follows the Order orb */
-  els.table.innerHTML = '<thead><tr><th>Ticket</th><th>Lot</th><th>Day</th><th>Grower</th><th>Source</th><th>Variety</th><th class="num">Bins</th><th class="num">Pressure</th><th class="num">Starch</th><th class="num">SS</th><th class="num">Streif</th></tr></thead><tbody>' +
-    rows.map(t => `<tr><td>${t.id}</td><td>${t.lot}</td><td>${t.day}</td><td>${t.grower}</td><td>${t.source}</td><td>${t.variety}</td><td class="num">${t.bins}</td><td class="num">${t.p.toFixed(1)}</td><td class="num">${t.st.toFixed(1)}</td><td class="num">${t.ss.toFixed(1)}</td><td class="num">${t.streif.toFixed(2)}</td></tr>`).join('') + '</tbody>';
+  const rows = scope().slice().sort(loadCmp);   /* follows the Order orb */
+  els.table.innerHTML = '<thead><tr><th>Ticket</th><th>Lot</th><th>Received</th><th>Grower</th><th>Source</th><th>Variety</th><th class="num">Bins</th><th class="num">Pressure</th><th class="num">Starch</th><th class="num">SS</th><th class="num">Streif</th></tr></thead><tbody>' +
+    rows.map(t => `<tr><td>${t.id}</td><td>${t.lot}</td><td>${t.day} ${t.time}</td><td>${t.grower}</td><td>${t.source}</td><td>${t.variety}</td><td class="num">${t.bins}</td><td class="num">${t.p.toFixed(1)}</td><td class="num">${t.st.toFixed(1)}</td><td class="num">${t.ss.toFixed(1)}</td><td class="num">${t.streif.toFixed(2)}</td></tr>`).join('') + '</tbody>';
 }
 
 /* ------------------------------------------------- lens, scrub and pinch */
@@ -1160,7 +1165,7 @@ function readURL(){
   const d = /^([0-6])-([0-6])$/.exec(q.get('days') || '');
   if (d && +d[1] <= +d[2]) setDays(+d[1], +d[2]);
   if (DIMS[q.get('by')]) state.groupBy = q.get('by');
-  if (['p','st','ss','streif'].includes(q.get('sort'))) state.sort = q.get('sort');
+  if (['name','p','st','ss','streif'].includes(q.get('sort'))) state.sort = q.get('sort');
   state.show = KEYS.includes(q.get('show')) ? q.get('show') : 'all';
   state.table = q.get('table') === '1';
   for (const k in state.filters){
