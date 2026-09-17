@@ -136,7 +136,6 @@ button,select{font:inherit;color:inherit}
 #deckC{z-index:5}
 /* a crowded deck keeps its cards readable and runs off the sides instead; drag to spin it */
 .deck.spin .blade{transition:opacity .4s,border-color .2s,box-shadow .2s}
-/* any deck with more than one card is a wheel: soft edges where cards come and go */
 .stage.ovf{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);cursor:grab}
 .blade{position:absolute;bottom:0;width:96px;height:206px;left:-48px;display:flex;flex-direction:column;gap:4px;padding:7px 6px 6px;background:var(--surface);border:1px solid var(--line-2);border-radius:13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% 100%;--a:0deg;--lift:0px;--sc:1;transform:translateY(var(--R)) rotate(var(--a)) translateY(calc(var(--lift) - var(--R))) scale(var(--sc));transition:transform .5s cubic-bezier(.25,.9,.3,1.1),opacity .4s,border-color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
 .blade.load{width:90px;left:-45px}
@@ -225,7 +224,7 @@ tr:last-child td{border-bottom:0}
   <h1 class="sr-only">Load ticket fan deck</h1>
   <div class="top">
     <div class="top-l">
-      <button class="reset" id="resetBtn" aria-label="Home: back to the default view" title="Home: today, by variety, nothing selected">
+      <button class="reset" id="resetBtn" aria-label="Home: back to the default view" title="Home: last 7 days, by variety, nothing selected">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5.5h4v5.5"/></svg>
       </button>
       <div class="seg" id="period" role="group" aria-label="Period">
@@ -375,7 +374,7 @@ const TICKETS = buildMockTickets().map(t => {
 
 /* -------------------------------------------------------------------- state */
 const state = {
-  days: new Set([0]), groupBy: 'variety', sort: 'default',
+  days: new Set([0,1,2,3,4,5,6]), groupBy: 'variety', sort: 'default',
   filters: {source:new Set(), grower:new Set(), variety:new Set()},
   drilled: null, selTicket: null, openOrb: null,
   sound: false, show: 'all', table: false
@@ -720,8 +719,8 @@ document.addEventListener('click', () => { if (state.openOrb){ state.openOrb = n
 /* while a card is in focus its neighbours slide apart just enough to show it whole */
 function angleFor(deck, el){
   const g = deck._geo, h = hot && hot.parentNode === deck ? hot._i : -1;
-  if (!g || h < 0 || el === hot || !g.shift) return el._a;
-  return el._a + (el._a < hot._a ? -g.shift / 2 : g.shift / 2);
+  if (!g || h < 0 || el._i === h || !g.shift) return el._a;
+  return el._a + (el._i < h ? -g.shift / 2 : g.shift / 2);
 }
 function applyHot(deck){
   (deck._order || []).forEach(el => { if (!el.classList.contains('enter')) el.style.setProperty('--a', angleFor(deck, el).toFixed(2) + 'deg'); });
@@ -740,7 +739,7 @@ function syncDeck(deckEl, items, from){
       /* pointer clicks are resolved by cardAt(); this one is for keyboards and assistive tech */
       el.addEventListener('click', e => { if (e.detail === 0 && el._act) el._act(); });
       el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el._act && el._act(); } });
-      el.addEventListener('focus', () => { const g = deckEl._geo; if (g && el.matches(':focus-visible') && Math.abs(el._a) > g.dw / 2 / (g.R + g.h / 2) / RAD - 3) spinTo(deckEl, -(g.a0 + el._i * g.step)); });
+      el.addEventListener('focus', () => { const g = deckEl._geo; if (g && g.maxOff && el.matches(':focus-visible')) spinTo(deckEl, -(g.a0 + el._i * g.step)); });
       if (!from) el.classList.add('enter');
       deckEl.appendChild(el); map.set(it.key, el);
     }
@@ -812,33 +811,20 @@ function arcFor(n, w, narrow){
   const deg = 1 / (R + CARD_H / 2) / RAD, step = pitch * deg;
   const half = Math.min((n - 1) / 2 * step, dw / 2 * deg);
   return {R, n, w, h:CARD_H, dw, step, a0:-(n - 1) / 2 * step, off:0,
-    /* the wheel's circumference: all the cards, or at least the canvas plus a card, so a card is fully
-       off one side before it comes back on the other */
-    period:Math.max(n * step, (dw + w * 1.4) * deg),
-    init:n > 1 ? Math.max(0, pitch - fit) * (n - 1) / 2 * deg : 0,   /* a crowded deck starts at its first card */
+    maxOff:n > 1 ? Math.max(0, pitch - fit) * (n - 1) / 2 * deg : 0,
     shift:Math.max(0, w * 1.14 + 8 - pitch) * deg,
     drop:(R + CARD_H) * (1 - Math.cos(half * RAD))};
 }
 /* keep the spin position while the same deck is on screen; a new deck starts at its first card */
 function carryOff(deck, g, key, centre){
   const prev = deck._geo;
-  g.off = centre ? 0 : (deck._offKey === key && prev ? prev.off : g.init);
+  g.off = centre ? 0 : (deck._offKey === key && prev ? Math.max(-g.maxOff, Math.min(g.maxOff, prev.off)) : g.maxOff);
   if (!centre) deck._offKey = key;
-}
-/* where card i sits on the wheel right now, wrapped into one turn */
-function dispAngle(g, i){
-  const a = g.a0 + i * g.step + g.off, P = g.period;
-  return ((a + P / 2) % P + P) % P - P / 2;
-}
-/* cards further right lie on top, wherever the wheel's seam happens to be */
-function restack(deck){
-  [...deck._order].sort((a, b) => a._a - b._a).forEach((el, r) => { el.style.zIndex = el.classList.contains('sel') ? 100 : r + 1; });
 }
 function spinTo(deck, off){
   const g = deck._geo; if (!g) return;
-  g.off = off;
-  deck._order.forEach((el, i) => { el._a = dispAngle(g, i); el.style.setProperty('--a', angleFor(deck, el).toFixed(2) + 'deg'); });
-  restack(deck);
+  g.off = Math.max(-g.maxOff, Math.min(g.maxOff, off));
+  deck._order.forEach((el, i) => { el._a = g.a0 + i * g.step + g.off; el.style.setProperty('--a', angleFor(deck, el).toFixed(2) + 'deg'); });
   if (deck === els.deckC) placePop();
 }
 function renderDecks(){
@@ -866,11 +852,11 @@ function renderDecks(){
   carryOff(els.deckP, gp, state.groupBy, drilled);
   if (drilled) carryOff(els.deckC, gc, state.groupBy + '|' + state.drilled, false);
   els.deckP._geo = gp; els.deckC._geo = drilled ? gc : null;
-  els.stage.classList.toggle('ovf', (drilled ? gc : gp).n > 1);
+  els.stage.classList.toggle('ovf', (drilled ? gc : gp).maxOff > 0);
   [els.deckP, els.deckC].forEach(d => d.style.setProperty('--R', gp.R + 'px'));
 
   syncDeck(els.deckP, gs.map((g, i) => {
-    return {key:g.key, cls:'group', angle:dispAngle(gp, i), z:i + 1, up:drilled && i === si, dim:drilled && i !== si,
+    return {key:g.key, cls:'group', angle:gp.a0 + i * gp.step + gp.off, z:i + 1, up:drilled && i === si, dim:drilled && i !== si,
       html:`<span class="c-name">${g.label}</span>${g.sub ? `<span class="c-sub">${g.sub}</span>` : ''}<span class="c-sub">${g.n} load${g.n === 1 ? '' : 's'}</span>${groupChips(g)}`,
       title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:{name:g.label, meta:`${g.sub ? g.sub + ' · ' : ''}${g.n} load${g.n === 1 ? '' : 's'}`, o:g},
       act:() => drill(g.key)};
@@ -880,11 +866,11 @@ function renderDecks(){
 
   if (drilled){
     /* the loads rise out of their group's card in the tray */
-    const aSel = dispAngle(gp, si) * RAD;
+    const aSel = (gp.a0 + si * gp.step + gp.off) * RAD;
     const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + gp.R * K * (1 - Math.cos(aSel)) - CARD_H * K * .5};
     syncDeck(els.deckC, ts.map((t, i) => {
       const who = state.groupBy === 'grower' ? t.variety : t.grower;
-      return {key:t.id, cls:'load', angle:dispAngle(gc, i), z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
+      return {key:t.id, cls:'load', angle:gc.a0 + i * gc.step + gc.off, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
         html:`<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${state.days.size === 1 ? t.timeShort : t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
         title:`Ticket ${t.id} · lot ${t.lot} · ${t.grower} · ${t.variety} · ${t.day}: ${tip(t)}`,
         lens:{name:'#' + t.id, meta:`Lot ${t.lot} · ${who} · ${t.dayShort} ${t.time}`, o:t},
@@ -894,7 +880,6 @@ function renderDecks(){
         }};
     }), from);
   }
-  restack(els.deckP); if (drilled) restack(els.deckC);
   placePop(); renderDown();
   fitStage();
 }
@@ -1022,12 +1007,11 @@ function polar(deck, x, y){
   return {th:Math.atan2(dx, py - dy) / RAD, r:Math.hypot(dx, dy - py) / g.k};
 }
 function slotAt(deck, th){
-  const g = deck._geo, half = g.w / 2 / (g.R + g.h / 2) / RAD, P = g.period;
-  /* undo the spin, then read the slot off the unspun wheel */
-  const w = (((th - g.off - g.a0 + half) % P) + P) % P;   /* distance past card 0's left edge, within one turn */
-  const i = g.step > 0 ? Math.floor(w / g.step) : 0;
-  if (i < 0 || i >= g.n) return null;
-  return w - i * g.step > 2 * half ? null : deck._order[i] || null;
+  const g = deck._geo, half = g.w / 2 / (g.R + g.h / 2) / RAD;
+  th -= g.off;
+  if (th < g.a0 - half || th > g.a0 + (g.n - 1) * g.step + half) return null;
+  const i = g.step > 0 ? Math.max(0, Math.min(g.n - 1, Math.floor((th - g.a0 + half) / g.step))) : 0;
+  return th > g.a0 + i * g.step + half ? null : deck._order[i] || null;
 }
 function deckAt(x, y){
   for (const deck of [els.deckC, els.deckP]){
@@ -1050,15 +1034,29 @@ function stopCoast(){
   cancelAnimationFrame(coast); coast = 0; clearTimeout(idleTimer);
   els.deckP.classList.remove('spin'); els.deckC.classList.remove('spin');
 }
-/* let go mid-drag and the wheel keeps turning, easing to a stop */
+/* a crowded deck keeps turning after a flick and stops at its ends */
 function startSpin(deck, w){
   let last = performance.now();
   const g = deck._geo, px = (g.R + g.h / 2) * g.k * stageS * RAD;
   const frame = now => {
-    const dt = Math.min(40, now - last); last = now;
-    spinTo(deck, g.off + w * dt); w *= Math.exp(-dt / 950);
-    if (deck._geo === g && Math.abs(w) * px > .02) coast = requestAnimationFrame(frame);
+    const dt = Math.min(40, now - last), before = g.off; last = now;
+    spinTo(deck, g.off + w * dt); w *= Math.exp(-dt / 320);
+    if (deck._geo === g && g.off !== before && Math.abs(w) * px > .03) coast = requestAnimationFrame(frame);
     else { coast = 0; deck.classList.remove('spin'); }
+  };
+  coast = requestAnimationFrame(frame);
+}
+/* a flick keeps riffling through the cards and settles on its own */
+function startCoast(deck, th, w){
+  let last = performance.now();
+  const g = deck._geo, px = (g.R + g.h / 2) * g.k * stageS * RAD;
+  const frame = now => {
+    const dt = Math.min(40, now - last); last = now;
+    th += w * dt; w *= Math.exp(-dt / 300);
+    const el = deck._geo === g ? slotAt(deck, th) : null;
+    if (el) setHot(el, true);
+    if (el && Math.abs(w) * px > .04) coast = requestAnimationFrame(frame);
+    else { coast = 0; idleTimer = setTimeout(() => setHot(null), 2200); }
   };
   coast = requestAnimationFrame(frame);
 }
@@ -1070,7 +1068,7 @@ els.stage.addEventListener('pointerdown', e => {
   }
   if (e.pointerType === 'touch' || e.button === 0){
     const deck = bandDeck(e.clientX, e.clientY), th = deck ? polar(deck, e.clientX, e.clientY).th : 0;
-    scrub = {id:e.pointerId, x:e.clientX, y:e.clientY, pan:false, deck, th, th0:th, off0:deck ? deck._geo.off : 0, t:e.timeStamp, w:0, trail:[]};
+    scrub = {id:e.pointerId, x:e.clientX, y:e.clientY, moved:false, pan:false, deck, th, th0:th, off0:deck ? deck._geo.off : 0, t:e.timeStamp, w:0};
   }
   setHot(cardAt(e.clientX, e.clientY), true);
 });
@@ -1085,19 +1083,19 @@ els.stage.addEventListener('pointermove', e => {
     }
   }
   const live = scrub && e.pointerId === scrub.id && scrub.deck && scrub.deck._geo ? scrub : null;
-  if (live && live.deck._geo.n > 1 && (e.pointerType === 'touch' || e.buttons & 1)){
+  if (live && live.deck._geo.maxOff > 0){
     const dx = e.clientX - live.x, dy = e.clientY - live.y;
     if (!live.pan && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)){
       live.pan = true; live.deck.classList.add('spin'); setHot(null);
       try { els.stage.setPointerCapture(e.pointerId); } catch (err) {}
     }
-    if (live.pan){
-      const th = polar(live.deck, e.clientX, e.clientY).th;
-      live.trail.push({th, t:e.timeStamp}); if (live.trail.length > 6) live.trail.shift();
-      spinTo(live.deck, live.off0 + th - live.th0);
-      return;
-    }
   }
+  if (live){
+    const th = polar(live.deck, e.clientX, e.clientY).th, dt = Math.max(1, e.timeStamp - live.t);
+    live.w = .6 * live.w + .4 * ((th - live.th) / dt); live.th = th; live.t = e.timeStamp;
+    if (live.pan){ spinTo(live.deck, live.off0 + th - live.th0); return; }
+  }
+  if (scrub && Math.hypot(e.clientX - scrub.x, e.clientY - scrub.y) > 14) scrub.moved = true;
   setHot(cardAt(e.clientX, e.clientY), true);
 });
 function endPointer(e){
@@ -1105,25 +1103,29 @@ function endPointer(e){
     if (e.type === 'pointerleave') return;
     const sc = scrub, g = sc.deck._geo; scrub = null; touches.delete(e.pointerId);
     suppressClick = true; setTimeout(() => { suppressClick = false; }, 450);
-    /* speed over the last few moves, ignoring a finger that paused before lifting */
-    const tr = sc.trail.filter(q => e.timeStamp - q.t < 140), a = tr[0], b = tr[tr.length - 1];
-    const w = a && b && b.t > a.t ? (b.th - a.th) / (b.t - a.t) : 0;
-    const speed = g ? Math.abs(w) * (g.R + g.h / 2) * g.k * stageS * RAD : 0;
-    if (g && e.type === 'pointerup' && speed > .12 && !calmMQ.matches) startSpin(sc.deck, w);
+    const speed = g ? Math.abs(sc.w) * (g.R + g.h / 2) * g.k * stageS * RAD : 0;
+    if (g && e.type === 'pointerup' && speed > .3 && e.timeStamp - sc.t < 80) startSpin(sc.deck, sc.w);
     else sc.deck.classList.remove('spin');
     return;
   }
   if (e.pointerType !== 'touch'){ if (e.type === 'pointerleave') setHot(null); if (e.type === 'pointerup') scrub = null; return; }
   if (!touches.has(e.pointerId)) return;
-  touches.delete(e.pointerId);
+  const multi = touches.size > 1; touches.delete(e.pointerId);
+  const sc = scrub, h = hot, up = e.type === 'pointerup' && !multi && sc && sc.moved;
   if (touches.size === 0) scrub = null;
-  setHot(null);   /* a tap opens through the click that follows */
+  /* a fast release riffles on; a slow, deliberate one opens the card under the finger */
+  if (up && sc.deck && sc.deck._geo && e.timeStamp - sc.t < 80){
+    const g = sc.deck._geo, speed = Math.abs(sc.w) * (g.R + g.h / 2) * g.k * stageS * RAD;
+    if (speed > .45){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); startCoast(sc.deck, sc.th, sc.w); return; }
+  }
+  setHot(null);
+  if (up && h){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); h._act && h._act(); }
 }
-/* trackpads and tilt wheels spin the deck too */
+/* trackpads and tilt wheels spin a crowded deck too */
 let wheelTimer = 0;
 els.stage.addEventListener('wheel', e => {
   const d = bandDeck(e.clientX, e.clientY);
-  if (!d || d._geo.n < 2 || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+  if (!d || !d._geo.maxOff || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
   e.preventDefault(); stopCoast();
   const g = d._geo;
   d.classList.add('spin'); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => d.classList.remove('spin'), 160);
@@ -1151,14 +1153,14 @@ function render(){
   els.resetBtn.classList.toggle('live', !isDefault());
   writeURL();
 }
-/* default view: today, blades by variety, nothing filtered, opened or selected */
+/* default view: last seven days, blades by variety, nothing filtered, opened or selected */
 function isDefault(){
   const r = dayRange();
-  return r.i0 === 6 && r.i1 === 6 && state.groupBy === 'variety' && state.sort === 'default' && state.show === 'all'
+  return r.i0 === 0 && r.i1 === 6 && state.groupBy === 'variety' && state.sort === 'default' && state.show === 'all'
     && state.drilled === null && !state.selTicket && !state.table && Object.values(state.filters).every(f => f.size === 0);
 }
 function resetView(){
-  closeChild(); setDays(6, 6);
+  closeChild(); setDays(0, 6);
   state.groupBy = 'variety'; state.sort = 'default'; state.show = 'all'; state.table = false; state.drilled = null; state.selTicket = null; state.openOrb = null;
   Object.values(state.filters).forEach(f => f.clear());
   els.resetBtn.classList.remove('go'); void els.resetBtn.offsetWidth; els.resetBtn.classList.add('go');
