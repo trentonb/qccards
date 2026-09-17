@@ -93,7 +93,9 @@ button,select{font:inherit;color:inherit}
 .sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
 
 /* layout: filters left, fan right on tablets and up */
-.layout{margin-top:14px}
+.layout{margin-top:14px;transition:opacity .5s ease}
+.top{transition:opacity .5s ease}
+.page.reflow .layout,.page.reflow .top{opacity:0;transition:none}
 .btn.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
 /* wide screens (desktop, iPad on its side): filters in a column on the left. An upright iPad keeps them in a row
    so the deck gets the full width. */
@@ -1153,8 +1155,13 @@ els.stage.addEventListener('pointerdown', e => {
     if (touches.size === 2){ scrub = null; setHot(null); pinch0 = Math.hypot(...pair()); return; }
   }
   if (e.pointerType === 'touch' || e.button === 0){
-    const deck = bandDeck(e.clientX, e.clientY), th = deck ? polar(deck, e.clientX, e.clientY).th : 0;
-    scrub = {id:e.pointerId, x:e.clientX, y:e.clientY, moved:false, pan:false, deck, th, th0:th, off0:deck ? deck._geo.off : 0, t:e.timeStamp, w:0};
+    /* Press on a card and slide: the focus follows your finger from card to card (a busy deck turns when you
+       reach its edge). Press on empty space and slide: a busy deck turns under your finger. */
+    const onCard = !!cardAt(e.clientX, e.clientY);
+    const deck = onCard ? bandDeck(e.clientX, e.clientY) : (state.drilled !== null ? els.deckC : els.deckP);
+    const th = deck && deck._geo ? polar(deck, e.clientX, e.clientY).th : 0;
+    scrub = {id:e.pointerId, x:e.clientX, y:e.clientY, px:e.clientX, py:e.clientY, mode:onCard ? 'slide' : 'turn', moved:false, pan:false,
+      deck, th, th0:th, off0:deck && deck._geo ? deck._geo.off : 0, t:e.timeStamp, w:0};
   }
   setHot(cardAt(e.clientX, e.clientY), true);
 });
@@ -1169,7 +1176,8 @@ els.stage.addEventListener('pointermove', e => {
     }
   }
   const live = scrub && e.pointerId === scrub.id && scrub.deck && scrub.deck._geo ? scrub : null;
-  if (live && live.deck._geo.maxOff > 0){
+  if (live){ live.px = e.clientX; live.py = e.clientY; }
+  if (live && live.mode === 'turn' && live.deck._geo.maxOff > 0){
     const dx = e.clientX - live.x, dy = e.clientY - live.y;
     if (!live.pan && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)){
       live.pan = true; live.deck.classList.add('spin'); setHot(null);
@@ -1185,8 +1193,25 @@ els.stage.addEventListener('pointermove', e => {
   /* after a wheel step the focus belongs to the wheel until the mouse really moves */
   if (wheelPin){ if (Math.hypot(e.clientX - wheelPin.x, e.clientY - wheelPin.y) < 12) return; wheelPin = null; }
   setHot(cardAt(e.clientX, e.clientY), true);
+  if (live && live.mode === 'slide' && live.deck._geo.maxOff > 0 && !edgeRaf) edgeRaf = requestAnimationFrame(edgeLoop);
 });
+/* while sliding across a busy deck, resting near either edge turns the deck to bring more cards under the finger */
+let edgeRaf = 0;
+function edgeLoop(){
+  edgeRaf = 0;
+  const sc = scrub, g = sc && sc.mode === 'slide' && sc.deck && sc.deck._geo;
+  if (!g || !g.maxOff) return;
+  const r = els.stage.getBoundingClientRect(), zone = Math.min(80, r.width * .15);
+  const dl = sc.px - r.left, dr = r.right - sc.px, dir = dl < zone ? 1 : dr < zone ? -1 : 0;
+  if (!dir){ sc.deck.classList.remove('spin'); return; }
+  const before = g.off;
+  sc.deck.classList.add('spin');
+  spinTo(sc.deck, g.off + dir * (.04 + .2 * (1 - Math.max(0, Math.min(dl, dr)) / zone)));   /* faster nearer the edge */
+  if (g.off !== before){ sc.moved = true; setHot(cardAt(sc.px, sc.py), true); edgeRaf = requestAnimationFrame(edgeLoop); }
+  else sc.deck.classList.remove('spin');
+}
 function endPointer(e){
+  if (scrub && e.pointerId === scrub.id && e.type !== 'pointerleave'){ cancelAnimationFrame(edgeRaf); edgeRaf = 0; if (scrub.deck && !scrub.pan) scrub.deck.classList.remove('spin'); }
   if (scrub && scrub.pan && e.pointerId === scrub.id){
     if (e.type === 'pointerleave') return;
     const sc = scrub, g = sc.deck._geo; scrub = null; touches.delete(e.pointerId);
@@ -1396,7 +1421,18 @@ els.sndBtn.addEventListener('click', () => {
 try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else down(); } });
-addEventListener('resize', () => { renderDays(); renderShow(); renderOrbs(true); renderDecks(); });
+/* Turning the device (or crossing into the other layout) re-flows everything. Positions, sizes and the deck's
+   scale already glide to their new values; the containers that CSS moves at once fade back in over the top. */
+let wasSide = sideMQ.matches, wasTall = innerHeight > innerWidth;
+addEventListener('resize', () => {
+  const flipped = wasSide !== sideMQ.matches || wasTall !== (innerHeight > innerWidth);
+  wasSide = sideMQ.matches; wasTall = innerHeight > innerWidth;
+  if (flipped && !calmMQ.matches){
+    const page = $('.page'); page.classList.add('reflow');
+    nextFrame(() => page.classList.remove('reflow'));
+  }
+  renderDays(); renderShow(); renderOrbs(true); renderDecks();
+});
 darkMQ.addEventListener('change', render);
 readURL(); render();
 })();
