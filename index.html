@@ -70,14 +70,14 @@ button,select{font:inherit;color:inherit}
 .top > .top-l{grid-column:1;grid-row:1}
 .top > .days{grid-column:3;grid-row:1}
 .top > .menu-w{grid-column:4;grid-row:1}
-.views{grid-column:2;justify-self:center;max-width:100%;min-width:0;display:flex;gap:6px;padding:3px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+/* saved views: the same glass track and sliding lens as the period and day controls; it scrolls sideways when full */
+.views.seg{touch-action:pan-x pan-y}
+.views{grid-column:2;justify-self:center;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
 .views::-webkit-scrollbar{display:none}
-.vpill{flex:none;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 15px;border-radius:999px;cursor:pointer;font-size:13px;white-space:nowrap;scroll-snap-align:center;color:var(--ink-2);border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);transition:transform .3s cubic-bezier(.3,1.7,.5,1),background .2s,color .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
-.vpill:active{transform:scale(.94)}
-.vpill.on{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:600;padding-right:6px}
-.vpill.add{color:var(--ink-3);border-style:dashed}
-.vpill svg{flex:none;opacity:.75}
-.vx{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:16px;line-height:1;background:color-mix(in srgb,var(--bg) 22%,transparent)}
+.views button{flex:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.views button svg{flex:none;opacity:.7}
+.views .add{color:var(--ink-3);padding:6px 14px}
+.vx{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin:0 -8px 0 2px;border-radius:50%;font-size:15px;font-weight:400;line-height:1;color:var(--ink-2);background:var(--line)}
 /* not enough room beside the period and day controls: the strip takes its own row */
 @media (max-width:1199px){.views{grid-column:1 / -1;grid-row:2}.views.empty{display:none}}
 .menu-w{position:relative;flex:none}
@@ -119,7 +119,7 @@ button,select{font:inherit;color:inherit}
 .glass.drag{transition:transform .18s ease-out,opacity .25s,width .2s;transform:scale(calc(1.06 * var(--sx,1)),calc(1.24 / var(--sx,1)));background:var(--glass-fill-drag)}
 /* upright iPad: Home, Refresh, period, days and the menu share one row */
 @media (min-width:701px) and (max-width:899px){.dayc{width:clamp(40px,5.6vw,46px)}.top{gap:8px}.top-l{gap:8px}.reset{width:40px;height:40px}.seg button{padding:6px 12px}}
-@media (max-width:700px){.top{display:flex;flex-wrap:wrap;justify-content:center}.top .days{order:3}.menu-w{order:2}.views{order:4;flex-basis:100%;justify-content:safe center}.wide-only{display:none}}
+@media (max-width:700px){.top{display:flex;flex-wrap:wrap;justify-content:center}.top .days{order:3}.menu-w{order:2}.views{order:4}.wide-only{display:none}}
 
 .sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
 
@@ -249,6 +249,10 @@ table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 th,td{padding:7px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-weight:600;color:var(--ink-2);font-size:12px}
 td.num,th.num{text-align:right}
+th{padding:0}
+button.th{width:100%;padding:9px 12px;border:0;background:transparent;font:inherit;font-weight:600;color:var(--ink-2);text-align:inherit;cursor:pointer;white-space:nowrap}
+button.th:hover,button.th.on{color:var(--ink)}
+thead th{position:sticky;top:0;background:var(--surface);z-index:1}
 tr:last-child td{border-bottom:0}
 @media (max-width:560px){
   .page{padding-top:calc(14px + env(safe-area-inset-top))}
@@ -288,7 +292,7 @@ tr:last-child td{border-bottom:0}
         <button data-p="7"><span class="wide-only">Last </span>7 days</button>
       </div>
     </div>
-    <div class="views" id="views" role="group" aria-label="Saved views"></div>
+    <div class="views seg" id="views" role="group" aria-label="Saved views"><span class="glass" id="viewLens"></span></div>
     <div class="days" id="days" role="group" aria-label="Pick a single day"></div>
     <div class="menu-w" id="menuW">
       <button class="reset" id="menuBtn" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
@@ -1081,11 +1085,28 @@ function renderDown(){
 }
 
 /* ------------------------------------------------------------------- table */
+const COLS = [
+  {k:'id', t:'Ticket', v:t => t.id}, {k:'lot', t:'Lot', v:t => +t.lot}, {k:'ts', t:'Received', v:t => t.ts, show:t => `${t.day} ${t.time}`},
+  {k:'grower', t:'Grower', v:t => t.grower}, {k:'source', t:'Source', v:t => t.source}, {k:'variety', t:'Variety', v:t => t.variety},
+  {k:'bins', t:'Bins', v:t => t.bins, num:true}, {k:'p', t:'Pressure', v:t => t.p, num:true, dp:1}, {k:'st', t:'Starch', v:t => t.st, num:true, dp:1}, {k:'ss', t:'SS', v:t => t.ss, num:true, dp:1}
+];
+let tableSort = null;   /* {k, dir}; until a header is clicked the table follows the Order orb */
 function renderTable(){
-  const rows = scope().slice().sort(loadCmp);   /* follows the Order orb */
-  els.table.innerHTML = '<thead><tr><th>Ticket</th><th>Lot</th><th>Received</th><th>Grower</th><th>Source</th><th>Variety</th><th class="num">Bins</th><th class="num">Pressure</th><th class="num">Starch</th><th class="num">SS</th></tr></thead><tbody>' +
-    rows.map(t => `<tr><td>${t.id}</td><td>${t.lot}</td><td>${t.day} ${t.time}</td><td>${t.grower}</td><td>${t.source}</td><td>${t.variety}</td><td class="num">${t.bins}</td><td class="num">${t.p.toFixed(1)}</td><td class="num">${t.st.toFixed(1)}</td><td class="num">${t.ss.toFixed(1)}</td></tr>`).join('') + '</tbody>';
+  const rows = scope().slice(), c = tableSort && COLS.find(x => x.k === tableSort.k);
+  if (c) rows.sort((a, b) => { const x = c.v(a), y = c.v(b); return (typeof x === 'string' ? x.localeCompare(y) : x - y) * tableSort.dir || a.ts - b.ts; });
+  else rows.sort(loadCmp);
+  els.table.innerHTML = '<thead><tr>' + COLS.map(col => {
+    const on = c === col, arrow = on ? (tableSort.dir > 0 ? ' ▲' : ' ▼') : '';
+    return `<th class="${col.num ? 'num' : ''}" aria-sort="${on ? (tableSort.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button class="th${on ? ' on' : ''}" data-k="${col.k}">${col.t}${arrow}</button></th>`;
+  }).join('') + '</tr></thead><tbody>' +
+    rows.map(t => '<tr>' + COLS.map(col => `<td class="${col.num ? 'num' : ''}">${col.show ? col.show(t) : col.dp ? col.v(t).toFixed(col.dp) : col.k === 'lot' ? t.lot : col.v(t)}</td>`).join('') + '</tr>').join('') + '</tbody>';
 }
+els.table.addEventListener('click', e => {
+  const b = e.target.closest('button.th'); if (!b) return;
+  e.stopPropagation();
+  tableSort = tableSort && tableSort.k === b.dataset.k ? {k:b.dataset.k, dir:-tableSort.dir} : {k:b.dataset.k, dir:1};
+  tick(); renderTable();
+});
 
 /* ------------------------------------------------- lens, scrub and pinch */
 let lensNote = '';
@@ -1352,28 +1373,38 @@ function resetView(){
 const ICON_HOME = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/></svg>';
 /* one pill per saved view; the pill that matches the screen is filled and carries its delete button */
 function renderViews(){
-  const vs = loadViews(), now = viewString(), home = homeView(), box = $('#views');
+  const vs = loadViews(), now = viewString(), home = homeView(), box = $('#views'), lens = $('#viewLens');
   const sig = JSON.stringify([vs, now, home]);
-  if (box._sig === sig) return; box._sig = sig;
-  box.innerHTML = ''; box.classList.toggle('empty', !vs.length);
-  vs.forEach(v => {
-    const b = document.createElement('button'), on = v.q === now;
-    b.className = 'vpill' + (on ? ' on' : ''); b.setAttribute('aria-pressed', on);
-    b.innerHTML = (v.q === home ? ICON_HOME : '') + '<span></span>' + (on ? '<span class="vx" role="button" tabindex="0" aria-label="Delete this view">×</span>' : '');
-    b.querySelector('span').textContent = v.name;
-    b.title = v.q === home ? v.name + ' (Home)' : v.name;
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      if (e.target.closest('.vx')){ if (confirm(`Delete the view "${v.name}"?`)){ saveViews(loadViews().filter(x => x.name !== v.name)); tick(); render(); } return; }
-      if (!on){ state.openOrb = null; applyView(v.q); tick(); renderOrbs(true); render(); }
+  if (box._sig !== sig){
+    box._sig = sig;
+    box.querySelectorAll('button').forEach(b => b.remove());
+    box.classList.toggle('empty', !vs.length);
+    vs.forEach(v => {
+      const b = document.createElement('button'), on = v.q === now;
+      b.setAttribute('aria-pressed', on);
+      b.innerHTML = (v.q === home ? ICON_HOME : '') + '<span></span>' + (on ? '<span class="vx" role="button" tabindex="0" aria-label="Delete this view">×</span>' : '');
+      b.querySelector('span').textContent = v.name;
+      b.title = v.q === home ? v.name + ' (Home)' : v.name;
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        if (e.target.closest('.vx')){ if (confirm(`Delete the view "${v.name}"?`)){ saveViews(loadViews().filter(x => x.name !== v.name)); tick(); render(); } return; }
+        if (!on){ state.openOrb = null; applyView(v.q); tick(); renderOrbs(true); render(); }
+      });
+      box.appendChild(b);
     });
-    box.appendChild(b);
-    if (on) nextFrame(() => b.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'}));
-  });
-  const add = document.createElement('button');
-  add.className = 'vpill add'; add.textContent = vs.length ? '+' : '+ Save view'; add.setAttribute('aria-label', 'Save the current view');
-  add.addEventListener('click', e => { e.stopPropagation(); openSaveForm(); });
-  box.appendChild(add);
+    const add = document.createElement('button');
+    add.className = 'add'; add.textContent = vs.length ? '+' : '+ Save view'; add.setAttribute('aria-label', 'Save the current view');
+    add.addEventListener('click', e => { e.stopPropagation(); openSaveForm(); });
+    box.appendChild(add);
+  }
+  /* the lens slides to the view that matches the screen, and the strip scrolls to keep it in sight */
+  const cur = box.querySelector('button[aria-pressed="true"]');
+  lens.style.opacity = cur ? 1 : 0;
+  if (cur){
+    lens.style.left = cur.offsetLeft + 'px'; lens.style.width = cur.offsetWidth + 'px';
+    const want = cur.offsetLeft + cur.offsetWidth / 2 - box.clientWidth / 2;
+    if (cur.offsetLeft < box.scrollLeft || cur.offsetLeft + cur.offsetWidth > box.scrollLeft + box.clientWidth) box.scrollTo({left:want, behavior:'smooth'});
+  }
 }
 function suggestName(){
   const r = dayRange(), n = r.i1 - r.i0 + 1;
@@ -1507,7 +1538,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (menu.cl
 /* Turning the device (or crossing into the other layout) re-flows everything. Positions, sizes and the deck's
    scale already glide to their new values; the containers that CSS moves at once fade back in over the top. */
 let wasSide = sideMQ.matches, wasTall = innerHeight > innerWidth;
-function relayout(rebuildOrbs){ renderDays(); renderShow(); renderOrbs(!!rebuildOrbs); renderDecks(); }
+function relayout(rebuildOrbs){ renderViews(); renderDays(); renderShow(); renderOrbs(!!rebuildOrbs); renderDecks(); }
 /* iPad Safari fires resize while the rotation is still under way, when widths are not final yet. Controls placed
    from those stale numbers ended up in the wrong spots, so lay out again as things settle, and also whenever
    one of the measured boxes actually changes width. */
