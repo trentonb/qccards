@@ -172,18 +172,8 @@ button,select{font:inherit;color:inherit}
 /* a crowded deck keeps its cards readable and runs off the sides instead; drag to spin it */
 .deck.spin .blade{transition:opacity .4s,border-color .2s,box-shadow .2s}
 .stage.ovf{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);cursor:grab}
-.blade{position:absolute;bottom:0;width:120px;height:224px;left:-60px;display:flex;flex-direction:column;gap:4px;padding:8px 8px 7px;background:var(--surface);border:1px solid var(--line-2);border-radius:13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% 100%;--a:0deg;--lift:0px;--sc:1;transform:translateY(var(--R)) rotate(var(--a)) translateY(calc(var(--lift) - var(--R))) scale(var(--sc));transition:transform .5s cubic-bezier(.25,.9,.3,1.1),height .5s cubic-bezier(.3,.8,.2,1),opacity .4s,border-color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.blade{position:absolute;bottom:0;width:120px;height:224px;left:-60px;display:flex;flex-direction:column;gap:4px;padding:8px 8px 7px;background:var(--surface);border:1px solid var(--line-2);border-radius:13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% 100%;--a:0deg;--lift:0px;--sc:1;transform:translateY(var(--R)) rotate(var(--a)) translateY(calc(var(--lift) - var(--R))) scale(var(--sc));transition:transform .5s cubic-bezier(.25,.9,.3,1.1),opacity .4s,border-color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
 .blade.load{width:114px;left:-57px}
-/* the tray under an open group: the same cards boiled down to a name and three values, large enough to read */
-.deck.tray .blade{height:158px;padding:8px 8px 8px}
-.deck.tray .c-name{font-size:16px;line-height:24px}
-.deck.tray .c-sub,.deck.tray .sp,.deck.tray .wh{display:none}
-.deck.tray .chip{display:flex;align-items:baseline;gap:7px;height:34px;padding:0 9px}
-.deck.tray .chip small{margin:0;font-size:13px}
-.deck.tray .chip b,.deck.tray .chip.big b{font-size:25px}
-.deck.tray .chip.big{height:60px;justify-content:center}
-.deck.tray .mchip{font-size:15px;line-height:24px}
-.deck.tray .blade.dim{opacity:.72}
 .blade.enter{opacity:0}
 .blade.hot{--lift:-16px;--sc:1.14;z-index:500!important;border-color:var(--ink-2);box-shadow:0 12px 30px rgba(0,0,0,.28)}
 .blade.sel,.blade.sel.hot{--lift:-24px;--sc:1.1;border-color:var(--ink);border-width:1.5px}
@@ -909,7 +899,7 @@ function back(){
 const tip = o => `pressure ${o.p.toFixed(1)} lb, starch ${o.st.toFixed(1)}, soluble solids ${o.ss.toFixed(1)} °Bx`;
 
 /* card arc geometry, in design pixels */
-const CARD_H = 224, TRAY_H = 158, RAD = Math.PI / 180;   /* tray cards are a compact name + three values */
+const CARD_H = 224, RAD = Math.PI / 180;
 let groupsNow = [], stageDW = 860, stageH = 320, stageCapH = 320, stageS = 1;
 /* target = the canvas width at which the deck would exactly fill the height on offer. Few cards: they simply
    fit. More cards: they overlap (by about an eighth at most) so they can be drawn larger; past that they keep a
@@ -953,9 +943,9 @@ function renderDecks(){
   const gs = groupsNow = computeGroups(), n = gs.length;
   if (state.drilled !== null && !gs.some(g => g.key === state.drilled)){ closeChild(); state.drilled = null; state.selTicket = null; }
   const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
-  const W = els.stage.clientWidth, narrow = W < 620, K = .62;
+  const W = els.stage.clientWidth, narrow = W < 620, K = .5;
   /* the scale the height allows, then the canvas width that scale would give */
-  const roughH = 60 + CARD_H + 44 + (drilled ? 22 + TRAY_H * K + 16 : 0);
+  const roughH = 60 + CARD_H + 44 + (drilled ? 22 + CARD_H * K + 16 : 0);
   const target = W / Math.max(.9, Math.min(MAX_S, roomBelow(drilled) / roughH));
 
   const gp = arcFor(n, 120, narrow, drilled ? target / K : target, drilled ? W / K : W);
@@ -966,15 +956,13 @@ function renderDecks(){
   /* 60px of headroom lets the focused card lift and swell; an open ticket needs room above the arc too */
   gc.k = 1; gp.k = drilled ? K : 1;
   stageDW = drilled ? Math.max(gc.dw, gp.dw * K) : gp.dw;
-  if (drilled) gp.h = TRAY_H;
-  els.deckP.classList.toggle('tray', drilled);
-  stageCapH = 60 + CARD_H + (drilled ? gc.drop + 22 + TRAY_H * K : 0) + gp.drop * gp.k + 14;
+  stageCapH = 60 + CARD_H + (drilled ? gc.drop + 22 + CARD_H * K : 0) + gp.drop * gp.k + 14;
   stageS = scaleFor();
   /* the ticket pop-up is real pixels; its height becomes headroom above the arc, in design pixels */
   const popPx = fillPop(drilled ? state.selTicket : null, drilled ? gs[si] : null, narrow);
   const extra = popPx ? popPx / stageS + 10 : 0, TOP = 60 + extra;
   gc.y = TOP + CARD_H;
-  gp.y = drilled ? gc.y + gc.drop + 22 + TRAY_H * K : TOP + CARD_H;
+  gp.y = drilled ? gc.y + gc.drop + 22 + CARD_H * K : TOP + CARD_H;
   stageH = stageCapH + extra;
   carryOff(els.deckP, gp, state.groupBy, drilled);
   if (drilled) carryOff(els.deckC, gc, state.groupBy + '|' + state.drilled, false);
@@ -994,7 +982,7 @@ function renderDecks(){
   if (drilled){
     /* the loads rise out of their group's card in the tray */
     const aSel = (gp.a0 + si * gp.step + gp.off) * RAD;
-    const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + gp.R * K * (1 - Math.cos(aSel)) - TRAY_H * K * .5};
+    const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + gp.R * K * (1 - Math.cos(aSel)) - CARD_H * K * .5};
     syncDeck(els.deckC, ts.map((t, i) => {
       const who = state.groupBy === 'grower' ? t.variety : t.grower;
       return {key:t.id, cls:'load', angle:gc.a0 + i * gc.step + gc.off, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
