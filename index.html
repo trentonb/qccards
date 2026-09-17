@@ -144,37 +144,37 @@ button,select{font:inherit;color:inherit}
 /* a crowded deck keeps its cards readable and runs off the sides instead; drag to spin it */
 .deck.spin .blade{transition:opacity .4s,border-color .2s,box-shadow .2s}
 .stage.ovf{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);cursor:grab}
-.blade{position:absolute;bottom:0;width:96px;height:206px;left:-48px;display:flex;flex-direction:column;gap:4px;padding:7px 6px 6px;background:var(--surface);border:1px solid var(--line-2);border-radius:13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% 100%;--a:0deg;--lift:0px;--sc:1;transform:translateY(var(--R)) rotate(var(--a)) translateY(calc(var(--lift) - var(--R))) scale(var(--sc));transition:transform .5s cubic-bezier(.25,.9,.3,1.1),opacity .4s,border-color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
-.blade.load{width:90px;left:-45px}
+.blade{position:absolute;bottom:0;width:120px;height:224px;left:-60px;display:flex;flex-direction:column;gap:4px;padding:8px 8px 7px;background:var(--surface);border:1px solid var(--line-2);border-radius:13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% 100%;--a:0deg;--lift:0px;--sc:1;transform:translateY(var(--R)) rotate(var(--a)) translateY(calc(var(--lift) - var(--R))) scale(var(--sc));transition:transform .5s cubic-bezier(.25,.9,.3,1.1),opacity .4s,border-color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.blade.load{width:114px;left:-57px}
 .blade.enter{opacity:0}
 .blade.hot{--lift:-16px;--sc:1.14;z-index:500!important;border-color:var(--ink-2);box-shadow:0 12px 30px rgba(0,0,0,.28)}
 .blade.sel,.blade.sel.hot{--lift:-24px;--sc:1.1;border-color:var(--ink);border-width:1.5px}
 .blade.up{--lift:-12px;border-color:var(--ink);border-width:2px}
 .blade.dim{opacity:.55}
 .blade.dim.hot{opacity:1}
-.c-name{font-size:12.5px;font-weight:650;letter-spacing:-.015em;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.c-sub{font-size:11px;color:var(--ink-2);line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.c-name{font-size:14.5px;font-weight:650;letter-spacing:-.01em;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-sub{font-size:12px;color:var(--ink-2);line-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .c-top{display:flex;justify-content:space-between;align-items:baseline;gap:4px}
-.c-id{font-size:16px;font-weight:700;line-height:18px;font-variant-numeric:tabular-nums}
+.c-id{font-size:18px;font-weight:700;line-height:20px;font-variant-numeric:tabular-nums}
 /* values sit on the left of each chip: when cards overlap, the left edge is the part that stays visible */
 .chips{margin-top:auto;display:flex;flex-direction:column;gap:4px}
 .chip{border-radius:9px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:6px;padding:4px 7px 5px;line-height:1;font-variant-numeric:tabular-nums}
-.chip small{grid-column:1 / -1;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.8;margin-bottom:2px}
-.chip b{font-size:21px;font-weight:700;letter-spacing:-.02em}
-.load .chip b{font-size:20px}
-.sp{display:block;width:100%;height:16px;overflow:visible}
+.chip small{grid-column:1 / -1;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.8;margin-bottom:2px}
+.chip b{font-size:25px;font-weight:700;letter-spacing:-.02em}
+.load .chip b{font-size:24px}
+.sp{display:block;width:100%;height:18px;overflow:visible}
 .wh{position:relative;display:block;height:5px;width:100%;border-radius:3px;background:color-mix(in srgb,currentColor 22%,transparent)}
 .wh i{position:absolute;top:0;bottom:0;border-radius:3px;background:currentColor;opacity:.85}
 /* one-measure mode: a single large value, the other two as small pills */
 /* cards never overlap in this mode, so the big value can sit dead centre */
 .chip.big{padding:6px 8px 7px;justify-items:center;text-align:center}
 .chip.big small{justify-self:center}
-.chip.big b{font-size:36px;grid-column:1 / -1;justify-self:center}
+.chip.big b{font-size:44px;grid-column:1 / -1;justify-self:center}
 .chip.big .sp{grid-column:1 / -1;height:22px;margin-top:5px}
 .chip.big .wh{grid-column:1 / -1;margin-top:7px}
 .mrow{display:flex;gap:4px}
-.mchip{flex:1 1 0;min-width:0;overflow:hidden;border-radius:7px;font-size:11px;font-weight:600;letter-spacing:-.02em;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
-.mchip small{font-size:8.5px;font-weight:600;letter-spacing:.02em;opacity:.8;margin-right:2px;text-transform:uppercase}
+.mchip{flex:1 1 0;min-width:0;overflow:hidden;border-radius:7px;font-size:13px;font-weight:600;letter-spacing:-.02em;line-height:20px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mchip small{font-size:9.5px;font-weight:600;letter-spacing:.02em;opacity:.8;margin-right:2px;text-transform:uppercase}
 .seg.small button{min-height:34px;padding:4px 13px}
 
 /* ticket detail: rises out of the top of the selected load's card */
@@ -767,9 +767,10 @@ document.addEventListener('click', () => { if (state.openOrb){ state.openOrb = n
 /* ------------------------------------------------------------------- decks */
 /* while a card is in focus its neighbours slide apart just enough to show it whole */
 function angleFor(deck, el){
-  const g = deck._geo, h = hot && hot.parentNode === deck ? hot._i : -1;
-  if (!g || h < 0 || el._i === h || !g.shift) return el._a;
-  return el._a + (el._i < h ? -g.shift / 2 : g.shift / 2);
+  /* neighbours make room for the card in focus, or else for the card whose ticket is open */
+  const g = deck._geo, ref = hot && hot.parentNode === deck ? hot : (deck._order || []).find(e => e.classList.contains('sel'));
+  if (!g || !ref || el === ref || !g.shift) return el._a;
+  return el._a + (el._i < ref._i ? -g.shift / 2 : g.shift / 2);
 }
 function applyHot(deck){
   (deck._order || []).forEach(el => { if (!el.classList.contains('enter')) el.style.setProperty('--a', angleFor(deck, el).toFixed(2) + 'deg'); });
@@ -819,6 +820,7 @@ function syncDeck(deckEl, items, from){
     map.delete(k); el.classList.add('enter'); el.style.pointerEvents = 'none';
     el.style.setProperty('--a','0deg'); setTimeout(() => el.remove(), 650);
   }
+  applyHot(deckEl);
 }
 /* fold the per-load cards back into the group card they came from */
 function closeChild(){
@@ -847,15 +849,16 @@ function back(){
 const tip = o => `pressure ${o.p.toFixed(1)} lb, starch ${o.st.toFixed(1)}, soluble solids ${o.ss.toFixed(1)} °Bx`;
 
 /* card arc geometry, in design pixels */
-const CARD_H = 206, RAD = Math.PI / 180;
+const CARD_H = 224, RAD = Math.PI / 180;
 let groupsNow = [], stageDW = 860, stageH = 320, stageCapH = 320, stageS = 1;
 function arcFor(n, w, narrow){
-  const R = narrow ? 800 : 1300, maxDW = narrow ? 430 : 980, minDW = narrow ? 360 : 560;
+  const R = narrow ? 800 : 1300, maxDW = narrow ? 450 : 860,   /* a tighter canvas overlaps busy decks a little more but draws every card larger */
+     minDW = narrow ? 360 : 560;
   const natural = (n - 1) * (w + 10) + w * 1.2 + 24;
   const dw = Math.min(maxDW, Math.max(minDW, natural));
   const fit = n > 1 ? (dw - 24 - w * 1.2) / (n - 1) : 0;
   /* never squeeze cards closer than a readable value; what does not fit runs off the sides */
-  const minPitch = state.show === 'all' ? 64 : 94;   /* one large value needs nearly the whole card */
+  const minPitch = state.show === 'all' ? (narrow ? 64 : 76) : w - 2;   /* a value must stay readable; one large value needs the whole card */
   const pitch = n > 1 ? Math.min(w + 10, Math.max(minPitch, fit)) : 0;
   const deg = 1 / (R + CARD_H / 2) / RAD, step = pitch * deg;
   const half = Math.min((n - 1) / 2 * step, dw / 2 * deg);
@@ -882,9 +885,9 @@ function renderDecks(){
   const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
   const narrow = els.stage.clientWidth < 620, K = .5;
 
-  const gp = arcFor(n, 96, narrow);
+  const gp = arcFor(n, 120, narrow);
   const ts = drilled ? gs[si].tickets.slice().sort(loadCmp) : [];
-  const gc = arcFor(ts.length, 90, narrow);
+  const gc = arcFor(ts.length, 114, narrow);
   /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
   if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
   /* 60px of headroom lets the focused card lift and swell; an open ticket needs room above the arc too */
