@@ -44,7 +44,7 @@
 html,body{margin:0}
 body{background:radial-gradient(60vw 42vh at 8% 0%,rgba(214,48,49,.15),transparent 70%),radial-gradient(50vw 40vh at 96% 6%,rgba(86,168,64,.14),transparent 70%),radial-gradient(70vw 50vh at 50% 100%,rgba(186,117,23,.09),transparent 70%),var(--bg);min-height:100vh;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-text-size-adjust:100%}
 /* installed as an app the page runs under the status bar, so keep clear of the notch / Dynamic Island */
-.page{max-width:1280px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.page{max-width:2000px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 button,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -82,6 +82,7 @@ button,select{font:inherit;color:inherit}
 .dayc.none .d{color:var(--ink-3);font-weight:400}
 .glass{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:999px;z-index:1;pointer-events:none;background:var(--glass-fill);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);-webkit-backdrop-filter:blur(8px) saturate(1.8);backdrop-filter:blur(8px) saturate(1.8);transform:scale(1);transition:left .55s cubic-bezier(.3,1.45,.5,1),width .55s cubic-bezier(.3,1.45,.5,1),transform .4s cubic-bezier(.3,1.7,.5,1),opacity .25s}
 .glass.drag{transition:transform .18s ease-out,opacity .25s,width .2s;transform:scale(calc(1.06 * var(--sx,1)),calc(1.24 / var(--sx,1)));background:var(--glass-fill-drag)}
+@media (min-width:701px) and (max-width:899px){.dayc{width:clamp(40px,5.6vw,46px)}.top{gap:10px}}
 @media (max-width:700px){.top{justify-content:center}.top .days{margin-left:0;order:3}.menu-w{order:2}.wide-only{display:none}}
 
 .sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
@@ -89,8 +90,10 @@ button,select{font:inherit;color:inherit}
 /* layout: filters left, fan right on tablets and up */
 .layout{margin-top:14px}
 .btn.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
-@media (min-width:760px){
-  .layout{display:grid;grid-template-columns:204px minmax(0,1fr);gap:16px;align-items:start}
+/* wide screens (desktop, iPad on its side): filters in a column on the left. An upright iPad keeps them in a row
+   so the deck gets the full width. */
+@media (min-width:900px){
+  .layout{display:grid;grid-template-columns:clamp(204px,16vw,280px) minmax(0,1fr);gap:16px;align-items:start}
   .side{position:sticky;top:12px}
 }
 
@@ -99,8 +102,8 @@ button,select{font:inherit;color:inherit}
 .orb-cap{position:absolute;top:0;transition:top .45s cubic-bezier(.2,.8,.2,1);font-size:11px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;transform:translateX(-50%);white-space:nowrap}
 .orb{position:absolute;left:0;top:0;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px;line-height:1.15;cursor:pointer;user-select:none;background:var(--surface);border:1px solid var(--line-2);box-shadow:var(--shadow);transition:transform .5s cubic-bezier(.25,.9,.3,1.15),opacity .3s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
 @media (hover:hover){.orb:hover{border-color:var(--ink-2)}}
-.orb .o1{font-size:11px;color:var(--ink-2)}
-.orb .o2{font-size:13px;font-weight:600;color:var(--ink)}
+.orb .o1{font-size:calc(11px * var(--k,1));color:var(--ink-2)}
+.orb .o2{font-size:calc(13px * var(--k,1));font-weight:600;color:var(--ink)}
 .orb.on{background:var(--accent-bg);border-color:var(--accent-line)}
 .orb.on .o1,.orb.on .o2{color:var(--accent)}
 .orb.open{border:2px solid var(--ink)}
@@ -178,7 +181,7 @@ button,select{font:inherit;color:inherit}
 .seg.small button{min-height:34px;padding:4px 13px}
 
 /* ticket detail: rises out of the top of the selected load's card */
-.stage-wrap{position:relative}
+.stage-wrap{position:relative;transition:margin-top .6s cubic-bezier(.3,.8,.2,1)}
 /* Drawn outside the scaled deck and revealed with a clip instead of a scale: text that is scaled up
    from a small bitmap stays blurry on iPad Safari. */
 .pop{position:absolute;left:0;top:0;z-index:40;box-sizing:border-box;padding:12px 14px 10px;background:var(--surface);border:1.5px solid var(--ink);border-radius:14px;font-size:13.5px;color:var(--ink-2);opacity:0;pointer-events:none;transform:translateY(18px);-webkit-clip-path:circle(0 at var(--ox,50%) 100%);clip-path:circle(0 at var(--ox,50%) 100%);transition:clip-path .5s cubic-bezier(.3,.9,.3,1),-webkit-clip-path .5s cubic-bezier(.3,.9,.3,1),transform .5s cubic-bezier(.3,1.4,.5,1),opacity .2s}
@@ -214,7 +217,9 @@ tr:last-child td{border-bottom:0}
   .seg button{padding:6px 11px}
   .reset{width:42px;height:42px}
   .top-l{gap:8px}
-  .crumbs .hint{display:none}
+  .crumbs .hint,.crumbs .btn{display:none}   /* the down arrow under the deck already goes back */
+  .bar{flex-wrap:nowrap}
+  .crumbs{min-width:0;flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
   .side{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
   .orbs{width:100%}
   .side .btn{flex:none;min-height:36px;padding:4px 12px}
@@ -627,7 +632,7 @@ function onAct(el, fn){
   el.addEventListener('click', e => { e.stopPropagation(); fn(); });
   el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fn(); } });
 }
-const sideMQ = matchMedia('(min-width: 760px)');
+const sideMQ = matchMedia('(min-width: 900px)');
 function clearFilters(k){
   Object.keys(state.filters).forEach(f => { if (!k || f === k) state.filters[f].clear(); });
   render();
@@ -704,7 +709,10 @@ function orbLayout(){
     });
     H = n ? 20 + PS + 22 + OS + 10 : 20 + PS + 6;
   } else {
-    PS = 72; OS = 60;
+    /* the column of orbs grows to use the height of the screen */
+    const room = innerHeight - (els.orbs.getBoundingClientRect().top + scrollY) - 28;
+    PS = Math.round(Math.max(62, Math.min(108, W * .5, (room - 4 * 23) / 6 - 9)));
+    OS = Math.round(Math.min(PS * .82, (W - 12) / 3));
     const cols = 3, cell = OS + 6; let y = 0;
     ORBS.forEach((ob, i) => {
       const cap = CAPS.findIndex(c => c.side === i);
@@ -724,6 +732,7 @@ function orbLayout(){
 }
 function renderOrbs(animate){
   const L = orbLayout();
+  els.orbs.style.setProperty('--k', Math.max(.85, Math.min(1.3, PS / 80)).toFixed(2));
   els.orbs.style.height = L.H + 'px';
   ORBS.forEach((ob, i) => {
     const o = parents[ob.k], v = orbValue(ob);
@@ -851,14 +860,17 @@ const tip = o => `pressure ${o.p.toFixed(1)} lb, starch ${o.st.toFixed(1)}, solu
 /* card arc geometry, in design pixels */
 const CARD_H = 224, RAD = Math.PI / 180;
 let groupsNow = [], stageDW = 860, stageH = 320, stageCapH = 320, stageS = 1;
-function arcFor(n, w, narrow){
-  const R = narrow ? 800 : 1300, maxDW = narrow ? 450 : 860,   /* a tighter canvas overlaps busy decks a little more but draws every card larger */
-     minDW = narrow ? 360 : 560;
-  const natural = (n - 1) * (w + 10) + w * 1.2 + 24;
-  const dw = Math.min(maxDW, Math.max(minDW, natural));
-  const fit = n > 1 ? (dw - 24 - w * 1.2) / (n - 1) : 0;
-  /* never squeeze cards closer than a readable value; what does not fit runs off the sides */
+/* target = the canvas width at which the deck would exactly fill the height on offer. Few cards: they simply
+   fit. More cards: they overlap (by about an eighth at most) so they can be drawn larger; past that they keep a
+   readable spacing and run off the sides, where the deck spins. */
+function arcFor(n, w, narrow, target, W){
+  /* base = the widest canvas a busy deck may use; on tablets it is held to keep cards at 1.1x or more */
+  const R = narrow ? 800 : 1300, base = narrow ? 450 : Math.max(560, Math.min(860, W / 1.1));
   const minPitch = state.show === 'all' ? (narrow ? 64 : 76) : w - 2;   /* a value must stay readable; one large value needs the whole card */
+  const span = pitch => (n - 1) * pitch + w * 1.2 + 24;
+  const natural = span(w + 10), snug = span(Math.max(minPitch, w * .88));
+  const dw = natural <= target ? natural : Math.max(target, Math.min(snug, base));
+  const fit = n > 1 ? (dw - 24 - w * 1.2) / (n - 1) : 0;
   const pitch = n > 1 ? Math.min(w + 10, Math.max(minPitch, fit)) : 0;
   const deg = 1 / (R + CARD_H / 2) / RAD, step = pitch * deg;
   const half = Math.min((n - 1) / 2 * step, dw / 2 * deg);
@@ -866,6 +878,13 @@ function arcFor(n, w, narrow){
     maxOff:n > 1 ? Math.max(0, pitch - fit) * (n - 1) / 2 * deg : 0,
     shift:Math.max(0, w * 1.14 + 8 - pitch) * deg,
     drop:(R + CARD_H) * (1 - Math.cos(half * RAD))};
+}
+const MAX_S = 2;
+/* height on offer for the deck: from the top of the stage to the bottom of the screen. Measured as if no
+   filter orb were open, so opening one does not resize the deck. */
+function roomBelow(drilled){
+  const top = els.lens.getBoundingClientRect().bottom + scrollY - (sideMQ.matches ? 0 : Math.max(0, els.orbs.offsetHeight - (20 + PS + 6)));
+  return Math.max(260, innerHeight - top - 22 - (drilled ? 58 : 0));
 }
 /* keep the spin position while the same deck is on screen; a new deck starts at its first card */
 function carryOff(deck, g, key, centre){
@@ -883,11 +902,14 @@ function renderDecks(){
   const gs = groupsNow = computeGroups(), n = gs.length;
   if (state.drilled !== null && !gs.some(g => g.key === state.drilled)){ closeChild(); state.drilled = null; state.selTicket = null; }
   const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
-  const narrow = els.stage.clientWidth < 620, K = .5;
+  const W = els.stage.clientWidth, narrow = W < 620, K = .5;
+  /* the scale the height allows, then the canvas width that scale would give */
+  const roughH = 60 + CARD_H + 44 + (drilled ? 22 + CARD_H * K + 16 : 0);
+  const target = W / Math.max(.9, Math.min(MAX_S, roomBelow(drilled) / roughH));
 
-  const gp = arcFor(n, 120, narrow);
+  const gp = arcFor(n, 120, narrow, drilled ? target / K : target, drilled ? W / K : W);
   const ts = drilled ? gs[si].tickets.slice().sort(loadCmp) : [];
-  const gc = arcFor(ts.length, 114, narrow);
+  const gc = arcFor(ts.length, 114, narrow, target, W);
   /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
   if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
   /* 60px of headroom lets the focused card lift and swell; an open ticket needs room above the arc too */
@@ -937,12 +959,15 @@ function renderDecks(){
 }
 /* fewer cards means a narrower canvas, so they are drawn larger; in the side layout an open deck still fits one screen */
 function scaleFor(){
-  return Math.min(1.4, els.stage.clientWidth / stageDW, sideMQ.matches ? Math.max(.6, (innerHeight - 178) / stageCapH) : 9);
+  const fitH = roomBelow(state.drilled !== null) / stageCapH;
+  return Math.min(MAX_S, els.stage.clientWidth / stageDW, Math.max(.9, fitH));
 }
 function fitStage(){
   stageS = scaleFor();
   els.stageIn.style.setProperty('--dw', stageDW + 'px');
   els.stageIn.style.setProperty('--s', stageS.toFixed(4));
+  const spare = roomBelow(state.drilled !== null) - stageCapH * stageS;
+  els.stage.parentElement.style.marginTop = Math.max(0, Math.round(spare * .35)) + 'px';
   els.stage.style.height = (Math.round(stageH * stageS) + (state.drilled !== null ? 58 : 0)) + 'px';   /* plus the down button's row */
 }
 
@@ -975,7 +1000,9 @@ function strip(k, t, g){
 /* fills the ticket pop-up and returns its height in real pixels (0 when no ticket is open) */
 function fillPop(t, g, narrow){
   if (!t){ els.pop.classList.remove('on', 'done'); els.pop._for = null; return 0; }
-  els.pop.style.width = Math.min(els.stage.clientWidth - 12, narrow ? 380 : 540) + 'px';
+  const z = Math.max(1, Math.min(1.35, stageS / 1.3));   /* grows with the deck on big screens */
+  els.pop.style.width = Math.min(els.stage.clientWidth - 12, narrow ? 380 : Math.round(540 * z)) + 'px';
+  els.pop.style.fontSize = (13.5 * (narrow ? 1 : z)).toFixed(1) + 'px';
   els.pop.innerHTML =
     `<button class="pop-x" id="popX" aria-label="Close ticket">×</button>` +
     `<div class="pop-h"><span class="pop-t">Ticket ${t.id}</span><span class="pop-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} ${t.time} · ${t.bins} bins · Streif ${t.streif.toFixed(2)}</span></div>` +
@@ -1220,7 +1247,7 @@ els.stage.addEventListener('click', e => {
 
 /* ------------------------------------------------------------------ wiring */
 function render(){
-  renderDays(); renderShow(); renderDecks(); renderOrbs(false); renderCrumbs(); renderTable();
+  renderDays(); renderShow(); renderOrbs(false); renderDecks(); renderCrumbs(); renderTable();
   if (hot && !hot.isConnected) hot = null;
   renderLens();
   els.sndBtn.textContent = state.sound ? 'Sound on' : 'Sound off';
@@ -1331,7 +1358,7 @@ els.sndBtn.addEventListener('click', () => {
 try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else down(); } });
-addEventListener('resize', () => { renderDays(); renderShow(); renderDecks(); renderOrbs(true); });
+addEventListener('resize', () => { renderDays(); renderShow(); renderOrbs(true); renderDecks(); });
 darkMQ.addEventListener('change', render);
 readURL(); render();
 })();
