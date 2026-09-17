@@ -65,8 +65,21 @@ button,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* header */
-.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.top .days{margin-left:auto}
+/* top bar: Home / Refresh / period on the left, saved views in the middle, days and the menu on the right */
+.top{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px}
+.top > .top-l{grid-column:1;grid-row:1}
+.top > .days{grid-column:3;grid-row:1}
+.top > .menu-w{grid-column:4;grid-row:1}
+.views{grid-column:2;justify-self:center;max-width:100%;min-width:0;display:flex;gap:6px;padding:3px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.views::-webkit-scrollbar{display:none}
+.vpill{flex:none;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 15px;border-radius:999px;cursor:pointer;font-size:13px;white-space:nowrap;scroll-snap-align:center;color:var(--ink-2);border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);transition:transform .3s cubic-bezier(.3,1.7,.5,1),background .2s,color .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
+.vpill:active{transform:scale(.94)}
+.vpill.on{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:600;padding-right:6px}
+.vpill.add{color:var(--ink-3);border-style:dashed}
+.vpill svg{flex:none;opacity:.75}
+.vx{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:16px;line-height:1;background:color-mix(in srgb,var(--bg) 22%,transparent)}
+/* not enough room beside the period and day controls: the strip takes its own row */
+@media (max-width:1199px){.views{grid-column:1 / -1;grid-row:2}.views.empty{display:none}}
 .menu-w{position:relative;flex:none}
 .menu{position:absolute;right:0;top:54px;z-index:60;min-width:190px;padding:6px;border-radius:16px;border:1px solid var(--line-2);background:var(--surface);box-shadow:0 14px 34px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:2px;transform-origin:100% 0;transform:scale(.6);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.3,1.5,.5,1),opacity .18s}
 .menu.open{transform:none;opacity:1;pointer-events:auto}
@@ -106,7 +119,7 @@ button,select{font:inherit;color:inherit}
 .glass.drag{transition:transform .18s ease-out,opacity .25s,width .2s;transform:scale(calc(1.06 * var(--sx,1)),calc(1.24 / var(--sx,1)));background:var(--glass-fill-drag)}
 /* upright iPad: Home, Refresh, period, days and the menu share one row */
 @media (min-width:701px) and (max-width:899px){.dayc{width:clamp(40px,5.6vw,46px)}.top{gap:8px}.top-l{gap:8px}.reset{width:40px;height:40px}.seg button{padding:6px 12px}}
-@media (max-width:700px){.top{justify-content:center}.top .days{margin-left:0;order:3}.menu-w{order:2}.wide-only{display:none}}
+@media (max-width:700px){.top{display:flex;flex-wrap:wrap;justify-content:center}.top .days{order:3}.menu-w{order:2}.views{order:4;flex-basis:100%;justify-content:safe center}.wide-only{display:none}}
 
 .sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
 
@@ -139,7 +152,6 @@ button,select{font:inherit;color:inherit}
 .orb.zero .o1,.orb.zero .o2{color:var(--ink-3)}
 .o-x{position:absolute;top:-6px;right:-6px;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--bg);display:none;align-items:center;justify-content:center;font-size:17px;line-height:1;box-shadow:var(--shadow)}
 .o-x::after{content:"";position:absolute;inset:-7px;border-radius:50%}
-.o-x.del{display:flex;width:24px;height:24px;top:-5px;right:-5px;font-size:14px}
 .orb.on .o-x{display:flex;animation:pop .3s cubic-bezier(.3,1.7,.5,1)}
 .o-x:active{transform:scale(.85)}
 
@@ -253,9 +265,8 @@ tr:last-child td{border-bottom:0}
   .lens{height:38px;margin-top:2px}
   .lens.idle{font-size:12px}
   .orb{padding:2px}
-  .orb .o1{font-size:10px}
   .o-x{width:22px;height:22px;top:-6px;right:-6px;font-size:13px}
-  .orb .o2{font-size:11px}
+  .orb .o2{font-size:12px}
 }
 @media (prefers-reduced-motion: reduce){*{transition-duration:.01s!important}}
 </style>
@@ -277,6 +288,7 @@ tr:last-child td{border-bottom:0}
         <button data-p="7"><span class="wide-only">Last </span>7 days</button>
       </div>
     </div>
+    <div class="views" id="views" role="group" aria-label="Saved views"></div>
     <div class="days" id="days" role="group" aria-label="Pick a single day"></div>
     <div class="menu-w" id="menuW">
       <button class="reset" id="menuBtn" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
@@ -653,13 +665,12 @@ glassDrag(segEl, segLens, segBtns, {
 /* -------------------------------------------------------------------- orbs */
 const SORTS = [['default','Date','→'], ['name','Name','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑']];
 const ORBS = [
-  {k:'views', name:'Views', kind:'views'},
   {k:'groupBy', name:'Blades by', kind:'group'},
   {k:'source', name:'Source', kind:'filter'}, {k:'grower', name:'Grower', kind:'filter'}, {k:'variety', name:'Variety', kind:'filter'},
   {k:'sort', name:'Order by', kind:'sort'}
 ];
-const CAPS = [{txt:'Saved', row:0, side:0}, {txt:'Group', row:1, side:1}, {txt:'Filter', row:3, side:2}, {txt:'Order', row:5, side:5}];
-const SETS = [[0], [1], [2,3,4], [5]];   /* saved views | group | filters | order */
+const CAPS = [{txt:'Group', row:0, side:0}, {txt:'Filter', row:2, side:1}, {txt:'Order', row:4, side:4}];
+const SETS = [[0], [1,2,3], [4]];   /* group | filters | order */
 let PS = 86, OS = 68;
 const parents = {}; let optEls = []; const caps = [];
 function mkOrb(size){
@@ -693,11 +704,6 @@ ORBS.forEach(ob => {
 CAPS.forEach(c => { const e = document.createElement('span'); e.className = 'orb-cap'; e.textContent = c.txt; els.orbs.appendChild(e); caps.push(e); });
 /* options carry a small line (s) and a bold line (b) */
 function orbOptions(ob){
-  if (ob.kind === 'views'){
-    const now = viewString();
-    return loadViews().map(v => ({v:v.q, s:v.name, b:'', on:v.q === now, view:v, say:`View ${v.name}`}))
-      .concat([{v:null, s:'Save current', b:'+', on:false, say:'Save the current view'}]);
-  }
   if (ob.kind === 'group') return Object.keys(DIMS).map(d => ({v:d, s:DIMS[d].label, b:new Set(scope().map(t => t[d])).size, on:state.groupBy === d, say:`Blades by ${DIMS[d].label}`}));
   if (ob.kind === 'sort') return SORTS.map(([v, l, mark]) => ({v, s:l, b:mark, on:state.sort === v, say:`Order by ${l}${v === 'default' ? ', oldest to newest' : v === 'name' ? '' : ', low to high'}`}));
   const f = state.filters[ob.k], inScope = scope(ob.k);
@@ -706,20 +712,12 @@ function orbOptions(ob){
     .concat(vals.map(v => { const n = inScope.filter(t => t[ob.k] === v).length; return {v, s:v, b:n, on:f.has(v), zero:n === 0 && !f.has(v), say:`${v}, ${n} loads`}; }));
 }
 function orbValue(ob){
-  if (ob.kind === 'views'){
-    const vs = loadViews(), now = viewString(), hit = vs.find(v => v.q === now);
-    return {val:hit ? hit.name : vs.length ? String(vs.length) : 'None', on:!!hit};
-  }
   if (ob.kind === 'group') return {val:DIMS[state.groupBy].label, on:false};
   if (ob.kind === 'sort') return {val:SORTS.find(x => x[0] === state.sort)[1], on:state.sort !== 'default'};
   const f = state.filters[ob.k];
   return {val:f.size === 0 ? 'All' : f.size === 1 ? [...f][0] : f.size + ' on', on:f.size > 0};
 }
 function pickOption(ob, cur){
-  if (ob.kind === 'views'){
-    if (cur.v === null){ openSaveForm(); return; }
-    state.openOrb = null; applyView(cur.v); tick(); renderOrbs(true); render(); return;
-  }
   if (ob.kind === 'group'){ if (state.groupBy !== cur.v){ state.groupBy = cur.v; closeChild(); state.drilled = null; state.selTicket = null; } }
   else if (ob.kind === 'sort') state.sort = cur.v;
   else {
@@ -738,9 +736,10 @@ function orbLayout(){
   const P = [], O = [], C = []; let H;
   if (!side){
     /* one row: group | three filters | order */
-    PS = W < 560 ? 52 : 80; OS = W < 560 ? 56 : 68;
-    const g = W < 560 ? 4 : 6, G = Math.max(6, Math.min(44, (W - 6*PS - 2*g) / 3));
-    let x = (W - (6*PS + 2*g + 3*G)) / 2;
+    const N = ORBS.length, gaps = SETS.length - 1, inner = N - SETS.length;
+    PS = W < 560 ? 62 : 84; OS = W < 560 ? 56 : 68;
+    const g = 6, G = Math.max(8, Math.min(56, (W - N*PS - inner*g) / gaps));
+    let x = (W - (N*PS + inner*g + gaps*G)) / 2;
     SETS.forEach(set => { set.forEach((i, j) => { P[i] = {x, y:20}; x += PS + (j < set.length - 1 ? g : 0); }); x += G; });
     CAPS.forEach(c => C.push({x:P[c.row].x + PS/2, y:0}));
     const step = Math.min(OS + 8, (W - OS) / Math.max(1, n-1));
@@ -752,7 +751,7 @@ function orbLayout(){
   } else {
     /* the column of orbs grows to use the height of the screen */
     const room = innerHeight - (els.orbs.getBoundingClientRect().top + scrollY) - 28;
-    PS = Math.round(Math.max(62, Math.min(108, W * .5, (room - 4 * 23) / 6 - 9)));
+    PS = Math.round(Math.max(62, Math.min(108, W * .5, (room - CAPS.length * 23) / ORBS.length - 9)));
     OS = Math.round(Math.min(PS * .82, (W - 12) / 3));
     const cols = 3, cell = OS + 6; let y = 0;
     ORBS.forEach((ob, i) => {
@@ -798,13 +797,6 @@ function renderOrbs(animate){
       els.orbs.appendChild(el);
       nextFrame(() => { el.style.opacity = 1; el.style.transform = to; });
       onAct(el, () => pickOption(ob, orbOptions(ob)[j]));
-      if (op.view){
-        const x = document.createElement('span');
-        x.className = 'o-x del'; x.textContent = '×'; x.setAttribute('role','button'); x.tabIndex = 0;
-        x.setAttribute('aria-label', `Delete view ${op.view.name}`);
-        el.appendChild(x);
-        onAct(x, () => { if (confirm(`Delete the view "${op.view.name}"?`)){ saveViews(loadViews().filter(v => v.name !== op.view.name)); renderOrbs(true); } });
-      }
     } else if (el.style.opacity === '1') el.style.transform = to;
     el.children[0].textContent = op.s; el.children[1].textContent = op.b;
     el.classList.toggle('on', op.on); el.classList.toggle('zero', !!op.zero);
@@ -1319,6 +1311,7 @@ els.stage.addEventListener('click', e => {
 
 /* ------------------------------------------------------------------ wiring */
 function render(){
+  renderViews();   /* first: it can add or remove a row, which changes the room the deck has */
   renderDays(); renderShow(); renderOrbs(false); renderDecks(); renderCrumbs(); renderTable();
   if (hot && !hot.isConnected) hot = null;
   renderLens();
@@ -1355,6 +1348,32 @@ function resetView(){
   state.openOrb = null; applyView(homeView());
   els.resetBtn.classList.remove('go'); void els.resetBtn.offsetWidth; els.resetBtn.classList.add('go');
   tick(); renderOrbs(true); render();
+}
+const ICON_HOME = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/></svg>';
+/* one pill per saved view; the pill that matches the screen is filled and carries its delete button */
+function renderViews(){
+  const vs = loadViews(), now = viewString(), home = homeView(), box = $('#views');
+  const sig = JSON.stringify([vs, now, home]);
+  if (box._sig === sig) return; box._sig = sig;
+  box.innerHTML = ''; box.classList.toggle('empty', !vs.length);
+  vs.forEach(v => {
+    const b = document.createElement('button'), on = v.q === now;
+    b.className = 'vpill' + (on ? ' on' : ''); b.setAttribute('aria-pressed', on);
+    b.innerHTML = (v.q === home ? ICON_HOME : '') + '<span></span>' + (on ? '<span class="vx" role="button" tabindex="0" aria-label="Delete this view">×</span>' : '');
+    b.querySelector('span').textContent = v.name;
+    b.title = v.q === home ? v.name + ' (Home)' : v.name;
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      if (e.target.closest('.vx')){ if (confirm(`Delete the view "${v.name}"?`)){ saveViews(loadViews().filter(x => x.name !== v.name)); tick(); render(); } return; }
+      if (!on){ state.openOrb = null; applyView(v.q); tick(); renderOrbs(true); render(); }
+    });
+    box.appendChild(b);
+    if (on) nextFrame(() => b.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'}));
+  });
+  const add = document.createElement('button');
+  add.className = 'vpill add'; add.textContent = vs.length ? '+' : '+ Save view'; add.setAttribute('aria-label', 'Save the current view');
+  add.addEventListener('click', e => { e.stopPropagation(); openSaveForm(); });
+  box.appendChild(add);
 }
 function suggestName(){
   const r = dayRange(), n = r.i1 - r.i0 + 1;
@@ -1430,7 +1449,7 @@ function commitSave(){
   const name = saveName.value.trim().slice(0, 22); if (!name){ saveName.focus(); return; }
   saveViews(loadViews().filter(v => v.name !== name).concat([{name, q:viewString()}]));   /* same name replaces */
   saveForm.hidden = true; setMenu(false); tick();
-  state.openOrb = 'views'; renderOrbs(true);   /* show where it landed */
+  render();   /* the new pill appears, filled, in the strip */
 }
 $('#saveBtn').addEventListener('click', () => { if (saveForm.hidden) openSaveForm(); else saveForm.hidden = true; });
 $('#saveGo').addEventListener('click', commitSave);
