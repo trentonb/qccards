@@ -1424,15 +1424,38 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (menu.cl
 /* Turning the device (or crossing into the other layout) re-flows everything. Positions, sizes and the deck's
    scale already glide to their new values; the containers that CSS moves at once fade back in over the top. */
 let wasSide = sideMQ.matches, wasTall = innerHeight > innerWidth;
-addEventListener('resize', () => {
+function relayout(rebuildOrbs){ renderDays(); renderShow(); renderOrbs(!!rebuildOrbs); renderDecks(); }
+/* iPad Safari fires resize while the rotation is still under way, when widths are not final yet. Controls placed
+   from those stale numbers ended up in the wrong spots, so lay out again as things settle, and also whenever
+   one of the measured boxes actually changes width. */
+let settle = [];
+function onViewportChange(){
   const flipped = wasSide !== sideMQ.matches || wasTall !== (innerHeight > innerWidth);
   wasSide = sideMQ.matches; wasTall = innerHeight > innerWidth;
-  if (flipped && !calmMQ.matches){
-    const page = $('.page'); page.classList.add('reflow');
-    nextFrame(() => page.classList.remove('reflow'));
+  if (flipped){
+    state.openOrb = null; setMenu(false);
+    if (!calmMQ.matches){ const page = $('.page'); page.classList.add('reflow'); setTimeout(() => page.classList.remove('reflow'), 140); }
   }
-  renderDays(); renderShow(); renderOrbs(true); renderDecks();
-});
+  relayout(true);
+  settle.forEach(clearTimeout);
+  settle = [60, 180, 400, 800].map(ms => setTimeout(() => relayout(false), ms));
+}
+addEventListener('resize', onViewportChange);
+addEventListener('orientationchange', onViewportChange);
+/* belt and braces: installed iOS apps do not always send resize on rotation */
+sideMQ.addEventListener('change', onViewportChange);
+matchMedia('(orientation: portrait)').addEventListener('change', onViewportChange);
+if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', onViewportChange);
+if (window.visualViewport) visualViewport.addEventListener('resize', () => { settle.push(setTimeout(() => relayout(false), 50)); });
+if (window.ResizeObserver){
+  const seen = new Map();
+  const ro = new ResizeObserver(entries => {
+    let changed = false;
+    entries.forEach(en => { const w = Math.round(en.contentRect.width); if (seen.get(en.target) !== w){ seen.set(en.target, w); changed = true; } });
+    if (changed) settle.push(setTimeout(() => relayout(false), 0));   /* widths only: our own height changes must not loop */
+  });
+  [els.orbs, els.stage, $('.top'), els.days, segEl].forEach(el => ro.observe(el));
+}
 darkMQ.addEventListener('change', render);
 readURL(); render();
 })();
