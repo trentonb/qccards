@@ -42,7 +42,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:radial-gradient(60vw 42vh at 8% 0%,rgba(55,138,221,.13),transparent 70%),radial-gradient(50vw 40vh at 96% 6%,rgba(212,83,126,.10),transparent 70%),radial-gradient(70vw 50vh at 50% 100%,rgba(186,117,23,.09),transparent 70%),var(--bg);min-height:100vh;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-text-size-adjust:100%}
+body{background:radial-gradient(60vw 42vh at 8% 0%,rgba(214,48,49,.15),transparent 70%),radial-gradient(50vw 40vh at 96% 6%,rgba(86,168,64,.14),transparent 70%),radial-gradient(70vw 50vh at 50% 100%,rgba(186,117,23,.09),transparent 70%),var(--bg);min-height:100vh;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-text-size-adjust:100%}
 .page{max-width:1280px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 button,select{font:inherit;color:inherit}
@@ -169,8 +169,12 @@ button,select{font:inherit;color:inherit}
 .seg.small button{min-height:34px;padding:4px 13px}
 
 /* ticket detail: rises out of the top of the selected load's card */
-.pop{position:absolute;left:0;top:0;z-index:20;box-sizing:border-box;padding:12px 14px 10px;background:var(--surface);border:1.5px solid var(--ink);border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.30);font-size:calc(12.5px * var(--pz,1));color:var(--ink-2);transform:scale(.12);opacity:0;pointer-events:none;transition:transform .5s cubic-bezier(.3,1.45,.5,1),opacity .22s}
-.pop.on{transform:none;opacity:1;pointer-events:auto}
+.stage-wrap{position:relative}
+/* Drawn outside the scaled deck and revealed with a clip instead of a scale: text that is scaled up
+   from a small bitmap stays blurry on iPad Safari. */
+.pop{position:absolute;left:0;top:0;z-index:40;box-sizing:border-box;padding:12px 14px 10px;background:var(--surface);border:1.5px solid var(--ink);border-radius:14px;font-size:13.5px;color:var(--ink-2);opacity:0;pointer-events:none;transform:translateY(18px);-webkit-clip-path:circle(0 at var(--ox,50%) 100%);clip-path:circle(0 at var(--ox,50%) 100%);transition:clip-path .5s cubic-bezier(.3,.9,.3,1),-webkit-clip-path .5s cubic-bezier(.3,.9,.3,1),transform .5s cubic-bezier(.3,1.4,.5,1),opacity .2s}
+.pop.on{opacity:1;pointer-events:auto;transform:none;-webkit-clip-path:circle(160% at var(--ox,50%) 100%);clip-path:circle(160% at var(--ox,50%) 100%)}
+.pop.done{-webkit-clip-path:none;clip-path:none;box-shadow:0 14px 34px rgba(0,0,0,.30)}
 .pop-stem{position:absolute;top:100%;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:0 0 2px 2px}
 .pop-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding-right:30px}
 .pop-t{font-size:1.3em;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -261,17 +265,19 @@ tr:last-child td{border-bottom:0}
 
   <div class="lens idle" id="lens" aria-live="off"></div>
 
+  <div class="stage-wrap">
+  <div class="pop" id="pop" role="dialog" aria-label="Ticket detail"></div>
   <div class="stage" id="stage">
     <h2 class="sr-only">Fan deck. Each blade is a group average; opening a blade fans out one blade per load.</h2>
     <div class="stage-in" id="stageIn">
       <div class="deck" id="deckP"></div>
       <div class="deck" id="deckC"></div>
-      <div class="pop" id="pop" role="dialog" aria-label="Ticket detail"></div>
     </div>
     <button class="down" id="downBtn">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       <span id="downLbl"></span>
     </button>
+  </div>
   </div>
 
   <div class="tw" id="tableWrap" hidden><table id="table"></table></div>
@@ -329,6 +335,8 @@ function buildMockTickets(){
   /* a lot is one grower + variety + block; several loads are hauled from each */
   const lots = [];
   growers.forEach(gr => gr.v.forEach(v => lots.push({no:String(2401 + lots.length*6 + Math.floor(rnd()*5)), gr, variety:v, block:'Block ' + (3 + Math.floor(rnd()*20))})));
+  /* 12-hour clock: 3:41 PM, or 3:41p where space is tight */
+  const clock = (m, pm, am) => ((Math.floor(m/60) + 11) % 12 + 1) + ':' + String(m % 60).padStart(2,'0') + (m >= 720 ? pm : am);
   const out = []; let id = 4100;
   const today = new Date();
   for (let daysAgo = 6; daysAgo >= 0; daysAgo--){
@@ -346,7 +354,7 @@ function buildMockTickets(){
       id += 1 + Math.floor(rnd()*3);
       const mins = Math.round(390 + (j + rnd()*.8) * (660 / n));   /* 6:30am to 5:30pm, in arrival order */
       out.push({id, daysAgo, ts: -daysAgo*1440 + mins,
-        time: String(Math.floor(mins/60)).padStart(2,'0') + ':' + String(mins % 60).padStart(2,'0'),
+        time: clock(mins, ' PM', ' AM'), timeShort: clock(mins, 'p', 'a'),
         day: d.toLocaleDateString('en-US',{weekday:'short'}) + ' ' + (d.getMonth()+1) + '/' + d.getDate(),
         dayShort: (d.getMonth()+1) + '/' + d.getDate(),
         grower: gr.n, source: gr.s, variety,
@@ -829,14 +837,16 @@ function renderDecks(){
   /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
   if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
   /* 60px of headroom lets the focused card lift and swell; an open ticket needs room above the arc too */
-  const popH = fillPop(drilled ? state.selTicket : null, drilled ? gs[si] : null, narrow);
-  const TOP = 60 + (popH ? popH + 10 : 0);
-  gc.k = 1; gc.y = TOP + CARD_H;
-  gp.k = drilled ? K : 1;
-  gp.y = drilled ? gc.y + gc.drop + 22 + CARD_H * K : TOP + CARD_H;
+  gc.k = 1; gp.k = drilled ? K : 1;
   stageDW = drilled ? Math.max(gc.dw, gp.dw * K) : gp.dw;
-  stageH = gp.y + gp.drop * gp.k + 14;
-  stageCapH = stageH - (popH ? popH + 10 : 0);   /* opening a ticket must not rescale the deck */
+  stageCapH = 60 + CARD_H + (drilled ? gc.drop + 22 + CARD_H * K : 0) + gp.drop * gp.k + 14;
+  stageS = scaleFor();
+  /* the ticket pop-up is real pixels; its height becomes headroom above the arc, in design pixels */
+  const popPx = fillPop(drilled ? state.selTicket : null, drilled ? gs[si] : null, narrow);
+  const extra = popPx ? popPx / stageS + 10 : 0, TOP = 60 + extra;
+  gc.y = TOP + CARD_H;
+  gp.y = drilled ? gc.y + gc.drop + 22 + CARD_H * K : TOP + CARD_H;
+  stageH = stageCapH + extra;
   carryOff(els.deckP, gp, state.groupBy, drilled);
   if (drilled) carryOff(els.deckC, gc, state.groupBy + '|' + state.drilled, false);
   els.deckP._geo = gp; els.deckC._geo = drilled ? gc : null;
@@ -859,7 +869,7 @@ function renderDecks(){
     syncDeck(els.deckC, ts.map((t, i) => {
       const who = state.groupBy === 'grower' ? t.variety : t.grower;
       return {key:t.id, cls:'load', angle:gc.a0 + i * gc.step + gc.off, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
-        html:`<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${state.days.size === 1 ? t.time : t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
+        html:`<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${state.days.size === 1 ? t.timeShort : t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
         title:`Ticket ${t.id} · lot ${t.lot} · ${t.grower} · ${t.variety} · ${t.day}: ${tip(t)}`,
         lens:{name:'#' + t.id, meta:`Lot ${t.lot} · ${who} · ${t.dayShort} ${t.time}`, o:t},
         act:() => {
@@ -871,10 +881,12 @@ function renderDecks(){
   placePop(); renderDown();
   fitStage();
 }
+/* fewer cards means a narrower canvas, so they are drawn larger; in the side layout an open deck still fits one screen */
+function scaleFor(){
+  return Math.min(1.4, els.stage.clientWidth / stageDW, sideMQ.matches ? Math.max(.6, (innerHeight - 178) / stageCapH) : 9);
+}
 function fitStage(){
-  const W = els.stage.clientWidth;
-  /* fewer cards means a narrower canvas, so they are drawn larger; in the side layout an open deck still fits one screen */
-  stageS = Math.min(1.4, W / stageDW, sideMQ.matches ? Math.max(.6, (innerHeight - 178) / stageCapH) : 9);
+  stageS = scaleFor();
   els.stageIn.style.setProperty('--dw', stageDW + 'px');
   els.stageIn.style.setProperty('--s', stageS.toFixed(4));
   els.stage.style.height = (Math.round(stageH * stageS) + (state.drilled !== null ? 58 : 0)) + 'px';   /* plus the down button's row */
@@ -906,11 +918,10 @@ function strip(k, t, g){
   h += `<line x1="${x(t[k]).toFixed(1)}" x2="${x(t[k]).toFixed(1)}" y1="1" y2="29" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>`;
   return h;
 }
-/* fills the ticket pop-up and returns its height in design pixels (0 when no ticket is open) */
+/* fills the ticket pop-up and returns its height in real pixels (0 when no ticket is open) */
 function fillPop(t, g, narrow){
-  if (!t){ els.pop.classList.remove('on'); els.pop._for = null; return 0; }
-  els.pop.style.width = (narrow ? 400 : 450) + 'px';
-  els.pop.style.setProperty('--pz', narrow ? 1.18 : 1);
+  if (!t){ els.pop.classList.remove('on', 'done'); els.pop._for = null; return 0; }
+  els.pop.style.width = Math.min(els.stage.clientWidth - 12, narrow ? 380 : 540) + 'px';
   els.pop.innerHTML =
     `<button class="pop-x" id="popX" aria-label="Close ticket">×</button>` +
     `<div class="pop-h"><span class="pop-t">Ticket ${t.id}</span><span class="pop-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} ${t.time} · ${t.bins} bins · Streif ${t.streif.toFixed(2)}</span></div>` +
@@ -926,17 +937,22 @@ function fillPop(t, g, narrow){
 /* sits just above the arc, tied by a stem to the top of its card, and grows out of that point */
 function placePop(){
   const t = state.selTicket, g = els.deckC._geo, el = t && els.deckC._map && els.deckC._map.get(t.id);
-  if (!t || !g || !el){ els.pop.classList.remove('on'); els.pop._for = null; return; }
-  const a = el._a * RAD, r = g.R + CARD_H * 1.1 + 24;
-  const ax = r * Math.sin(a), ay = g.y + g.R - r * Math.cos(a);
-  const w = els.pop.offsetWidth, h = els.pop.offsetHeight, bottom = g.y - CARD_H - 55;
-  const x = Math.max(-stageDW / 2 + w / 2 + 6, Math.min(stageDW / 2 - w / 2 - 6, ax));
-  const sx = Math.max(14, Math.min(w - 14, ax - x + w / 2)), sh = Math.max(0, ay - bottom);
-  els.pop.style.left = (stageDW / 2 + x - w / 2).toFixed(1) + 'px';
+  if (!t || !g || !el){ els.pop.classList.remove('on', 'done'); els.pop._for = null; return; }
+  const a = el._a * RAD, r = g.R + CARD_H * 1.1 + 24, S = stageS, W = els.stage.clientWidth;
+  /* top of the raised card, from design pixels to real ones */
+  const ax = W / 2 + r * Math.sin(a) * S, ay = (g.y + g.R - r * Math.cos(a)) * S;
+  const w = els.pop.offsetWidth, h = els.pop.offsetHeight, bottom = (g.y - CARD_H - 55) * S;
+  const left = Math.max(6, Math.min(W - w - 6, ax - w / 2));
+  const sx = Math.max(14, Math.min(w - 14, ax - left)), sh = Math.max(0, ay - bottom);
+  els.pop.style.left = left.toFixed(1) + 'px';
   els.pop.style.top = (bottom - h).toFixed(1) + 'px';
-  els.pop.style.transformOrigin = `${sx.toFixed(1)}px ${(h + sh).toFixed(1)}px`;
+  els.pop.style.setProperty('--ox', sx.toFixed(1) + 'px');
   const stem = $('#popStem'); if (stem){ stem.style.left = sx.toFixed(1) + 'px'; stem.style.height = sh.toFixed(1) + 'px'; }
-  if (els.pop._for !== t.id){ els.pop._for = t.id; els.pop.classList.remove('on'); nextFrame(() => { if (els.pop._for === t.id) els.pop.classList.add('on'); }); }
+  if (els.pop._for !== t.id){
+    els.pop._for = t.id; els.pop.classList.remove('on', 'done');
+    nextFrame(() => { if (els.pop._for === t.id) els.pop.classList.add('on'); });
+    setTimeout(() => { if (els.pop._for === t.id) els.pop.classList.add('done'); }, 560);   /* drop the clip so the shadow shows */
+  }
 }
 /* one level down: ticket -> loads -> all groups */
 function down(){
