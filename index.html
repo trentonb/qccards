@@ -349,7 +349,7 @@ const calmMQ = matchMedia('(prefers-reduced-motion: reduce)');
 
 /* --------------------------------------------------------------------- data */
 /* Ticket shape: {id, daysAgo, ts (minutes, for ordering), time, day, dayShort, grower, source, variety, block, bins,
-   lot, samples:{p:[],st:[],ss:[]}}. Averages and Streif are derived below. */
+   lot, samples:{p:[],st:[],ss:[]}}. Averages are derived below. */
 function buildMockTickets(){
   let seed = 41;
   const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
@@ -398,7 +398,6 @@ function buildMockTickets(){
 const mean = a => a.reduce((x,y) => x+y, 0) / a.length;
 const TICKETS = buildMockTickets().map(t => {
   KEYS.forEach(k => t[k] = mean(t.samples[k]));
-  t.streif = t.p / (t.ss * t.st);
   return t;
 });
 
@@ -429,7 +428,6 @@ function scope(except, anyDay){
 function summarize(ts){
   const o = {n: ts.length, bins: ts.reduce((a,t) => a+t.bins, 0)};
   KEYS.forEach(k => o[k] = ts.length ? mean(ts.map(t => t[k])) : NaN);
-  o.streif = o.p / (o.ss * o.st);
   return o;
 }
 /* daily mean per metric over the last seven days, oldest first; null where no loads */
@@ -619,7 +617,7 @@ glassDrag(segEl, segLens, segBtns, {
   tap: i => { setDays(7 - +segBtns[i].dataset.p, 6); render(); }
 });
 /* -------------------------------------------------------------------- orbs */
-const SORTS = [['default','Date','→'], ['name','Name','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑'], ['streif','Streif','↑']];
+const SORTS = [['default','Date','→'], ['name','Name','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑']];
 const ORBS = [
   {k:'views', name:'Views', kind:'views'},
   {k:'groupBy', name:'Blades by', kind:'group'},
@@ -1014,7 +1012,7 @@ function fillPop(t, g, narrow){
   els.pop.style.fontSize = (13.5 * (narrow ? 1 : z)).toFixed(1) + 'px';
   els.pop.innerHTML =
     `<button class="pop-x" id="popX" aria-label="Close ticket">×</button>` +
-    `<div class="pop-h"><span class="pop-t">Ticket ${t.id}</span><span class="pop-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} ${t.time} · ${t.bins} bins · Streif ${t.streif.toFixed(2)}</span></div>` +
+    `<div class="pop-h"><span class="pop-t">Ticket ${t.id}</span><span class="pop-m">Lot ${t.lot} · ${t.grower} (${t.source.toLowerCase()}) · ${t.variety} · ${t.block} · ${t.day} ${t.time} · ${t.bins} bins</span></div>` +
     KEYS.map(k => {
       const m = METRICS[k], v = t.samples[k];
       return `<div class="pop-r"><span>${m.name}<small>${Math.min(...v).toFixed(1)}–${Math.max(...v).toFixed(1)} ${m.unit}</small></span>${strip(k, t, g)}<span class="pop-v">${t[k].toFixed(1)}</span></div>`;
@@ -1059,8 +1057,8 @@ function renderDown(){
 /* ------------------------------------------------------------------- table */
 function renderTable(){
   const rows = scope().slice().sort(loadCmp);   /* follows the Order orb */
-  els.table.innerHTML = '<thead><tr><th>Ticket</th><th>Lot</th><th>Received</th><th>Grower</th><th>Source</th><th>Variety</th><th class="num">Bins</th><th class="num">Pressure</th><th class="num">Starch</th><th class="num">SS</th><th class="num">Streif</th></tr></thead><tbody>' +
-    rows.map(t => `<tr><td>${t.id}</td><td>${t.lot}</td><td>${t.day} ${t.time}</td><td>${t.grower}</td><td>${t.source}</td><td>${t.variety}</td><td class="num">${t.bins}</td><td class="num">${t.p.toFixed(1)}</td><td class="num">${t.st.toFixed(1)}</td><td class="num">${t.ss.toFixed(1)}</td><td class="num">${t.streif.toFixed(2)}</td></tr>`).join('') + '</tbody>';
+  els.table.innerHTML = '<thead><tr><th>Ticket</th><th>Lot</th><th>Received</th><th>Grower</th><th>Source</th><th>Variety</th><th class="num">Bins</th><th class="num">Pressure</th><th class="num">Starch</th><th class="num">SS</th></tr></thead><tbody>' +
+    rows.map(t => `<tr><td>${t.id}</td><td>${t.lot}</td><td>${t.day} ${t.time}</td><td>${t.grower}</td><td>${t.source}</td><td>${t.variety}</td><td class="num">${t.bins}</td><td class="num">${t.p.toFixed(1)}</td><td class="num">${t.st.toFixed(1)}</td><td class="num">${t.ss.toFixed(1)}</td></tr>`).join('') + '</tbody>';
 }
 
 /* ------------------------------------------------- lens, scrub and pinch */
@@ -1341,7 +1339,7 @@ function readParams(q){
   const d = /^([0-6])-([0-6])$/.exec(q.get('days') || '');
   if (d && +d[1] <= +d[2]) setDays(+d[1], +d[2]);
   if (DIMS[q.get('by')]) state.groupBy = q.get('by');
-  state.sort = ['name','p','st','ss','streif'].includes(q.get('sort')) ? q.get('sort') : 'default';
+  state.sort = ['name','p','st','ss'].includes(q.get('sort')) ? q.get('sort') : 'default';
   state.show = KEYS.includes(q.get('show')) ? q.get('show') : 'all';
   state.table = q.get('table') === '1';
   for (const k in state.filters){
