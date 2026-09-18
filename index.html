@@ -93,7 +93,8 @@ button,select{font:inherit;color:inherit}
 .vpanel.open{-webkit-clip-path:circle(150% at var(--ox,50%) 0);clip-path:circle(150% at var(--ox,50%) 0);opacity:1;pointer-events:auto;transition:clip-path .6s cubic-bezier(.2,.8,.2,1),-webkit-clip-path .6s cubic-bezier(.2,.8,.2,1),opacity .15s}
 .vp-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 10px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
 .vp-h .btn{min-height:34px;text-transform:none;letter-spacing:0}
-.vp-g{display:flex;flex-wrap:wrap;gap:8px;max-height:min(52vh,420px);overflow-y:auto;padding:2px}
+.vp-g{display:flex;flex-wrap:wrap;gap:8px;max-height:min(52vh,420px);overflow-y:auto;padding:2px;scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+.pick .vp-g{max-height:min(62vh,560px)}
 .vchip{display:inline-flex;align-items:center;gap:7px;height:46px;padding:0 18px;border-radius:999px;cursor:pointer;font-size:14px;white-space:nowrap;color:var(--ink);border:1px solid var(--line-2);background:var(--surface-2);opacity:0;transform:translateY(-14px) scale(.8);transition:opacity .12s,transform .12s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
 .vpanel.open .vchip{opacity:1;transform:none;transition:opacity .3s,transform .55s cubic-bezier(.3,1.55,.5,1),background .2s,border-color .2s;transition-delay:calc(60ms + var(--i,0) * 26ms),calc(60ms + var(--i,0) * 26ms),0s,0s}
 .vchip:active{transform:scale(.94)!important}
@@ -110,6 +111,17 @@ button,select{font:inherit;color:inherit}
 .vpanel.edit .vchip .vx{display:inline-flex}
 @keyframes jig{from{rotate:-1.2deg}to{rotate:1.2deg}}
 @media (prefers-reduced-motion: reduce){.vpanel.edit .vchip{animation:none}}
+/* picker: a long filter (growers) opens as a searchable sheet instead of a ring of orbs */
+.vpanel.pick{left:0;transform:none;width:auto;-webkit-clip-path:circle(0 at var(--ox,0) var(--oy,0));clip-path:circle(0 at var(--ox,0) var(--oy,0))}
+.vpanel.pick.open{-webkit-clip-path:circle(160% at var(--ox,0) var(--oy,0));clip-path:circle(160% at var(--ox,0) var(--oy,0))}
+.pk-s{display:flex;gap:8px;margin:0 0 10px}
+.pk-s input{flex:1;min-width:0;height:42px;padding:0 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);font:inherit;font-size:16px;outline:none}
+.pk-s input:focus{border-color:var(--ink-2)}
+.pk-sec{flex-basis:100%;margin:6px 2px 0;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.pk-sec:first-child{margin-top:0}
+.vchip em{font-style:normal;font-size:12px;font-weight:600;opacity:.6;font-variant-numeric:tabular-nums}
+.vchip.zero{opacity:.38!important;cursor:default}
+.vchip.pk{height:42px;padding:0 15px}
 .vp-e{margin:6px 2px 0;font-size:13px;color:var(--ink-2)}
 /* upright iPad: the top row is full, so the pill takes its own row */
 @media (min-width:701px) and (max-width:899px){.views{grid-column:1 / -1;grid-row:2}}
@@ -380,6 +392,12 @@ tr:last-child td{border-bottom:0}
     <div class="vp-g" id="vpGrid"></div>
   </div>
 
+  <div class="vpanel pick" id="picker" role="dialog" aria-label="Choose">
+    <div class="vp-h"><span id="pkTitle"></span><span style="display:flex;gap:8px"><button class="btn" id="pkClear">Clear</button><button class="btn" id="pkDone">Done</button></span></div>
+    <div class="pk-s"><input id="pkSearch" type="search" placeholder="Search" aria-label="Search" autocomplete="off" enterkeyhint="search"></div>
+    <div class="vp-g" id="pkGrid"></div>
+  </div>
+
   <div class="layout">
   <aside class="side">
     <div class="orbs" id="orbs"></div>
@@ -463,13 +481,18 @@ function buildMockTickets(){
   const g = () => (rnd()+rnd()+rnd()-1.5)*1.15;
   const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
   const pick = a => a[Math.floor(rnd()*a.length)];
-  const growers = [
-    {n:'Home Ranch', s:'Captive', b:-.12, v:['Honeycrisp','Gala','Cosmic Crisp']},
-    {n:'River Bench', s:'Captive', b:.05, v:['Fuji','Granny Smith','Gala']},
-    {n:'Alder Creek', s:'Outside', b:.18, v:['Honeycrisp','Fuji']},
-    {n:'Kessler Fruit', s:'Outside', b:-.02, v:['Gala','Granny Smith','Cosmic Crisp']},
-    {n:'Tri-Peak', s:'Outside', b:.10, v:['Honeycrisp','Cosmic Crisp','Fuji']}
-  ];
+  /* a realistic spread: a few company (captive) orchards and a long list of outside growers */
+  const V = ['Honeycrisp','Gala','Fuji','Granny Smith','Cosmic Crisp'];
+  const names = [['Home Ranch','Captive'], ['River Bench','Captive'], ['North Forty','Captive'], ['Canal Block','Captive'],
+    ['Alder Creek','Outside'], ['Kessler Fruit','Outside'], ['Tri-Peak','Outside'], ['Basalt Ridge','Outside'], ['Bennett & Sons','Outside'],
+    ['Blue Heron','Outside'], ['Cascade View','Outside'], ['Cold Spring','Outside'], ['Dry Gulch','Outside'], ['Eagle Rock','Outside'],
+    ['Foster Orchards','Outside'], ['Garcia Family','Outside'], ['High Line','Outside'], ['Icicle Fruit','Outside'], ['Juniper Flat','Outside'],
+    ['Larkspur','Outside'], ['Mission Hill','Outside'], ['Nakamura','Outside'], ['Orchard Pass','Outside'], ['Pine Hollow','Outside'],
+    ['Quail Run','Outside'], ['Sagebrush','Outside'], ['Twin Rivers','Outside'], ['Wenas Valley','Outside']];
+  const growers = names.map(([n, s]) => {
+    const v = V.filter(() => rnd() < .45); if (!v.length) v.push(pick(V));
+    return {n, s, b:(rnd() - .5) * .4, v};
+  });
   const vbias = {'Honeycrisp':-.05,'Gala':.08,'Fuji':0,'Granny Smith':-.15,'Cosmic Crisp':-.08};
   /* a lot is one grower + variety + block; several loads are hauled from each */
   const lots = [];
@@ -480,7 +503,7 @@ function buildMockTickets(){
   const today = new Date();
   for (let daysAgo = 6; daysAgo >= 0; daysAgo--){
     const d = new Date(today); d.setDate(today.getDate()-daysAgo);
-    const n = 5 + Math.floor(rnd()*4);
+    const n = 14 + Math.floor(rnd()*8);
     for (let j = 0; j < n; j++){
       const lot = pick(lots), gr = lot.gr, variety = lot.variety;
       const t = clamp(.5 + gr.b + vbias[variety] + g()*.22, 0, 1);
@@ -737,6 +760,7 @@ glassDrag(segEl, segLens, segBtns, {
 });
 /* -------------------------------------------------------------------- orbs */
 const SORTS = [['default','Date','→'], ['name','Name','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑']];
+const PICK_OVER = 8;
 const ORBS = [
   {k:'groupBy', name:'Blades by', kind:'group'},
   {k:'source', name:'Source', kind:'filter'}, {k:'grower', name:'Grower', kind:'filter'}, {k:'variety', name:'Variety', kind:'filter'},
@@ -765,7 +789,11 @@ function clearFilters(k){
 ORBS.forEach(ob => {
   const o = mkOrb(PS); if (ob.kind === 'group') o.classList.add('lead');
   parents[ob.k] = o; els.orbs.appendChild(o);
-  onAct(o, () => { state.openOrb = state.openOrb === ob.k ? null : ob.k; renderOrbs(true); });
+  onAct(o, () => {
+    /* a handful of options bloom around the orb; a long list opens as a searchable sheet */
+    if (ob.kind === 'filter' && new Set(TICKETS.map(t => t[ob.k])).size > PICK_OVER){ setPicker(pickerDim === ob.k ? null : ob); return; }
+    setPicker(null); state.openOrb = state.openOrb === ob.k ? null : ob.k; renderOrbs(true);
+  });
   if (ob.kind === 'filter' || ob.kind === 'sort'){
     const x = document.createElement('span');
     x.className = 'o-x'; x.textContent = '×'; x.setAttribute('role','button'); x.tabIndex = 0;
@@ -852,7 +880,7 @@ function renderOrbs(animate){
     o.style.width = o.style.height = PS + 'px';
     o.style.transform = `translate(${L.P[i].x}px,${L.P[i].y}px)`;
     o.children[0].textContent = ob.name; o.children[1].textContent = v.val;
-    o.classList.toggle('on', v.on); o.classList.toggle('open', state.openOrb === ob.k);
+    o.classList.toggle('on', v.on); o.classList.toggle('open', state.openOrb === ob.k || pickerDim === ob.k);
     o.setAttribute('aria-expanded', state.openOrb === ob.k);
     o.setAttribute('aria-label', `${ob.name}: ${v.val}`);
   });
@@ -1363,7 +1391,7 @@ function endPointer(e){
   if (up && h){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); h._act && h._act(); }
 }
 /* a click that is only closing a menu or an open filter orb should not also step back */
-const busyElsewhere = () => !!state.openOrb || viewsOpen || $('#menu').classList.contains('open');
+const busyElsewhere = () => !!state.openOrb || viewsOpen || !!pickerDim || $('#menu').classList.contains('open');
 $('.main').addEventListener('click', e => {
   if (e.detail === 0 || suppressClick || busyElsewhere() || e.target.closest('button,.pop,.seg,.tw,#stage,a,input')) return;
   stepBack();
@@ -1414,6 +1442,7 @@ els.stage.addEventListener('click', e => {
 
 /* ------------------------------------------------------------------ wiring */
 function render(){
+  renderPicker();
   renderViews();   /* first: it can add or remove a row, which changes the room the deck has */
   renderDays(); renderShow(); renderOrbs(false); renderDecks(); renderCrumbs(); renderTable();
   if (hot && !hot.isConnected) hot = null;
@@ -1454,6 +1483,67 @@ function resetView(){
 }
 const ICON_HOME = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/></svg>';
 /* one pill per saved view; the pill that matches the screen is filled and carries its delete button */
+/* ---------------------------------------------------------- picker sheet for long filters */
+let pickerDim = null, pickerOb = null;
+function renderPicker(){
+  const panel = $('#picker'), grid = $('#pkGrid');
+  if (!pickerDim) return;
+  const ob = pickerOb, f = state.filters[ob.k], q = $('#pkSearch').value.trim().toLowerCase();
+  const inScope = scope(ob.k), count = v => inScope.filter(t => t[ob.k] === v).length;
+  const all = [...new Set(TICKETS.map(t => t[ob.k]))].sort((a, b) => a.localeCompare(b));
+  const vals = all.filter(v => !q || v.toLowerCase().includes(q));
+  $('#pkTitle').textContent = f.size ? `${ob.name} · ${f.size} selected` : `${ob.name} · ${all.length}`;
+  $('#pkClear').hidden = !f.size;
+  /* growers fall into captive and outside; anything else is one list. Chosen ones always lead. */
+  const secOf = v => ob.k === 'grower' ? (TICKETS.find(t => t.grower === v) || {}).source || '' : '';
+  const groups = new Map();
+  vals.forEach(v => { const k = f.has(v) ? 'Selected' : secOf(v); (groups.get(k) || groups.set(k, []).get(k)).push(v); });
+  const order = ['Selected', ...[...groups.keys()].filter(k => k !== 'Selected').sort()];
+  grid.innerHTML = ''; let i = 0;
+  order.forEach(sec => {
+    if (!groups.has(sec)) return;
+    if (sec){ const h = document.createElement('div'); h.className = 'pk-sec'; h.textContent = sec; grid.appendChild(h); }
+    groups.get(sec).forEach(v => {
+      const n = count(v), on = f.has(v), b = document.createElement('button');
+      b.className = 'vchip pk' + (on ? ' on' : '') + (!n && !on ? ' zero' : ''); b.style.setProperty('--i', Math.min(i++, 24));
+      b.setAttribute('aria-pressed', on); b.innerHTML = '<span></span><em></em>';
+      b.children[0].textContent = v; b.children[1].textContent = n;
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        if (on) f.delete(v); else if (n) f.add(v); else return;
+        tick(); render();
+      });
+      grid.appendChild(b);
+    });
+  });
+  if (!vals.length){ const n = document.createElement('p'); n.className = 'vp-e'; n.textContent = 'Nothing matches that search.'; grid.appendChild(n); }
+}
+function setPicker(ob){
+  const panel = $('#picker');
+  if (!ob){ if (pickerDim){ pickerDim = null; pickerOb = null; panel.classList.remove('open'); renderOrbs(false); } return; }
+  setMenu(false); if (viewsOpen) setViews(false);
+  state.openOrb = null; renderOrbs(true);
+  pickerDim = ob.k; pickerOb = ob; $('#pkSearch').value = ''; $('#pkSearch').placeholder = 'Search ' + ob.name.toLowerCase() + 's';
+  /* beside the orb in the column layout, under the row of orbs otherwise; it grows out of the orb */
+  const page = $('.page').getBoundingClientRect(), o = parents[ob.k].getBoundingClientRect(), side = sideMQ.matches;
+  const left = side ? o.right - page.left + 16 : 12, width = Math.min(640, page.width - left - 12);
+  /* in the column layout it starts level with the top of the filters, so a long list has the whole height */
+  const top = side ? $('.layout').getBoundingClientRect().top - page.top : els.orbs.getBoundingClientRect().bottom - page.top + 8;
+  panel.style.left = left + 'px'; panel.style.width = width + 'px'; panel.style.top = top + 'px';
+  panel.style.setProperty('--ox', (side ? -16 : o.left + o.width / 2 - page.left - left).toFixed(0) + 'px');
+  panel.style.setProperty('--oy', (side ? o.top + o.height / 2 - page.top - top : 0).toFixed(0) + 'px');
+  renderPicker(); tick();
+  panel.classList.add('open');
+  renderOrbs(false);
+  if (!noHover.matches) setTimeout(() => $('#pkSearch').focus(), 250);   /* no keyboard popping up unasked on touch */
+}
+$('#picker').addEventListener('click', e => e.stopPropagation());
+$('#pkSearch').addEventListener('input', renderPicker);
+$('#pkSearch').addEventListener('keydown', e => e.stopPropagation());
+$('#pkDone').addEventListener('click', e => { e.stopPropagation(); setPicker(null); });
+$('#pkClear').addEventListener('click', e => { e.stopPropagation(); state.filters[pickerDim].clear(); tick(); render(); });
+document.addEventListener('click', () => setPicker(null));
+
 /* the pill shows the view on screen (or just "Views"); the sheet lists them all */
 let viewsOpen = false, viewsEdit = false, viewsSaving = false, viewsFresh = null;
 function renderViews(){
@@ -1505,7 +1595,7 @@ function setViews(open){
   const panel = $('#vpanel'), btn = $('#viewsBtn'), top = $('.top');
   viewsOpen = open; if (!open){ viewsEdit = false; viewsSaving = false; }
   if (open){
-    setMenu(false); state.openOrb = null; renderOrbs(true);
+    setMenu(false); setPicker(null); state.openOrb = null; renderOrbs(true);
     /* drop from just under the top bar, growing out of the pill */
     panel.style.top = (top.offsetTop + top.offsetHeight + 8) + 'px';
     const pr = panel.getBoundingClientRect(), br = btn.getBoundingClientRect();
@@ -1553,6 +1643,7 @@ addEventListener('hashchange', () => { closeChild(); readURL(); render(); });
 const menuBtn = $('#menuBtn'), menu = $('#menu');
 function setMenu(open){
   if (open && viewsOpen) setViews(false);
+  if (open) setPicker(null);
   menu.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open);
   if (!open) $('#installHelp').hidden = true;
   $('#homeClr').hidden = homeView() === BUILTIN_HOME;
@@ -1647,7 +1738,7 @@ els.sndBtn.addEventListener('click', () => {
 });
 try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
-document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (viewsOpen) setViews(false); else if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else stepBack(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (pickerDim) setPicker(null); else if (viewsOpen) setViews(false); else if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else stepBack(); } });
 /* Turning the device (or crossing into the other layout) re-flows everything. Positions, sizes and the deck's
    scale already glide to their new values; the containers that CSS moves at once fade back in over the top. */
 let wasSide = sideMQ.matches, wasTall = innerHeight > innerWidth;
@@ -1660,7 +1751,7 @@ function onViewportChange(){
   const flipped = wasSide !== sideMQ.matches || wasTall !== (innerHeight > innerWidth);
   wasSide = sideMQ.matches; wasTall = innerHeight > innerWidth;
   if (flipped){
-    state.openOrb = null; setMenu(false); if (viewsOpen) setViews(false);
+    state.openOrb = null; setMenu(false); if (viewsOpen) setViews(false); setPicker(null);
     if (!calmMQ.matches){ const page = $('.page'); page.classList.add('reflow'); setTimeout(() => page.classList.remove('reflow'), 140); }
   }
   relayout(true);
