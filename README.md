@@ -4,7 +4,11 @@ A touch-first way to look at apple receiving QC. Each load ticket's pressure, st
 
 Built for iPad first, and works on phones and desktops. It is one `index.html` with no build step and no dependencies.
 
-## Run it
+## Live
+
+https://trentonb.github.io/qccards/ is served by GitHub Pages from `main`, so every push updates it within a minute or two. On an iPad or iPhone, open it in Safari and use Share → Add to Home Screen.
+
+## Run it locally
 
 ```bash
 python -m http.server 8124
