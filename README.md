@@ -35,7 +35,7 @@ Averages and standard deviations are worked out from the samples.
 - Period: Today, 3 days or 7 days. Drag the glass lens, or tap a single day.
 - Circles on the left: group the cards, filter them, and set the order. A long list, such as growers, opens a searchable sheet.
 - Views (top bar): save the current setup, including the card layout and size, and come back to it in one tap. Any view can be made Home from the menu.
-- Cards: tap to open. Press and slide to move across them, or run a thumb along the strip under the deck to sweep through every card. Scroll the mouse wheel over them to step through. Tap empty space to go back a level.
+- Cards: tap to open. Press and slide to move across them, or run a thumb along the strip under the deck to sweep through every card; push the strip up to open the focused card and down to go back a level. Scroll the mouse wheel over them to step through. Tap empty space to go back a level.
 - Search (magnifier, or press / or Ctrl+K): type a ticket or lot number, or part of a grower or variety name, and jump straight to it.
 - Table icon: opens every load in scope as a sortable table.
 - Menu: save a view, set Home, install on the home screen, choose the card layout (Curved, Flat or Grid) and card size (Normal, Large or Compact), change the theme, pick a click sound (Tick, Wood or Soft) or turn it off.
