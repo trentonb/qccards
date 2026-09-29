@@ -37,7 +37,7 @@ Averages and standard deviations are worked out from the samples.
 - Views (top bar): save the current setup and come back to it in one tap. Any view can be made Home from the menu.
 - Cards: tap to open. Press and slide to move across them. Scroll the mouse wheel over them to step through. Tap empty space to go back a level.
 - Table icon: opens every load in scope as a sortable table.
-- Menu: save a view, set Home, install on the home screen, change the theme, turn the sound on or off.
+- Menu: save a view, set Home, install on the home screen, choose the card layout (Curved, Flat or Grid) and card size (Normal, Large or Compact), change the theme, turn the sound on or off.
 
 Saved views, Home, theme and sound are stored in each browser, so every device keeps its own.
 

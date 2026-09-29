@@ -226,7 +226,7 @@ button,select{font:inherit;color:inherit}
 /* a crowded deck keeps its cards readable and runs off the sides instead; drag to spin it */
 .deck.spin .blade{transition:opacity .4s,border-color .2s,box-shadow .2s}
 .stage.ovf{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 94%,transparent 100%);cursor:grab}
-.blade{position:absolute;bottom:0;width:120px;height:224px;left:-60px;display:flex;flex-direction:column;gap:4px;padding:8px 8px 7px;background:var(--surface);border:1px solid var(--line-2);border-radius:13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% 100%;--a:0deg;--lift:0px;--sc:1;transform:translateY(var(--R)) rotate(var(--a)) translateY(calc(var(--lift) - var(--R))) scale(var(--sc));transition:transform .5s cubic-bezier(.25,.9,.3,1.1),opacity .4s,border-color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.blade{position:absolute;bottom:0;width:120px;height:224px;left:-60px;display:flex;flex-direction:column;gap:4px;padding:8px 8px 7px;background:var(--surface);border:1px solid var(--line-2);border-radius:13px;cursor:pointer;user-select:none;box-shadow:var(--shadow);transform-origin:50% 100%;--a:0deg;--lift:0px;--sc:1;transform:translateY(var(--gy,0px)) translateY(var(--R)) rotate(var(--a)) translateY(calc(var(--lift) - var(--R))) scale(var(--sc));transition:transform .5s cubic-bezier(.25,.9,.3,1.1),opacity .4s,border-color .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
 .blade.load{width:114px;left:-57px}
 .blade.enter{opacity:0}
 .blade.hot{--lift:-16px;--sc:1.14;z-index:500!important;border-color:var(--ink-2);box-shadow:0 12px 30px rgba(0,0,0,.28)}
@@ -383,6 +383,7 @@ tr:last-child td{border-bottom:0}
         <button class="mi" id="installBtn" role="menuitem">Install on Home Screen</button>
         <div class="mhelp" id="installHelp" hidden></div>
         <button class="mi" id="layoutBtn" role="menuitem">Cards: Curved</button>
+        <button class="mi" id="sizeBtn" role="menuitem">Size: Normal</button>
         <button class="mi" id="themeBtn" role="menuitem">Theme: Auto</button>
         <button class="mi" id="sndBtn" role="menuitemcheckbox" aria-checked="false">Sound off</button>
       </div>
@@ -472,8 +473,12 @@ const VCODE = {'Honeycrisp':'HC','Gala':'GA','Fuji':'FJ','Granny Smith':'GS','Co
 const darkMQ = matchMedia('(prefers-color-scheme: dark)');
 let theme = 'auto';   /* auto | light | dark */
 /* card layout: curved (a hand of cards) or flat (a straight row). A device preference, like the theme. */
-const LAYOUTS = {curved:'Curved', flat:'Flat'};
+const LAYOUTS = {curved:'Curved', flat:'Flat', grid:'Grid'};
 let cardLayout = 'curved';
+/* card size scales every layout: compact shows more cards at once, large fewer and bigger */
+const SIZES = {normal:['Normal', 1], large:['Large', 1.25], compact:['Compact', .8]};
+let cardSize = 'normal';
+const sizeF = () => SIZES[cardSize][1];
 const isDark = () => theme === 'dark' || (theme === 'auto' && darkMQ.matches);
 const calmMQ = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -942,7 +947,8 @@ function syncDeck(deckEl, items, from){
       deckEl.appendChild(el); map.set(it.key, el);
     }
     if (el._html !== it.html){ el.innerHTML = it.html; el._html = it.html; }
-    el._act = it.act; el._lens = it.lens; el._a = it.angle; el._i = i; el.setAttribute('aria-label', it.title);
+    el._act = it.act; el._lens = it.lens; el._a = it.angle; el._gy = it.gy || 0; el._i = i; el.setAttribute('aria-label', it.title);
+    el.style.setProperty('--gy', el._gy + 'px');
     deckEl._order.push(el);
     el.style.zIndex = it.z;
     ['sel','up','dim'].forEach(c => el.classList.toggle(c, !!it[c]));
@@ -957,9 +963,9 @@ function syncDeck(deckEl, items, from){
     if (isNew && from && !calmMQ.matches){
       el.animate([
         {transform:chain(R, from.x, from.y, 0, .3), opacity:0},
-        {transform:chain(R, 0, -20, 0, 1), opacity:1, offset:.42},
-        {transform:chain(R, 0, 0, it.angle * 1.07, 1), opacity:1, offset:.84},
-        {transform:chain(R, 0, 0, it.angle, 1), opacity:1}
+        {transform:chain(R, 0, el._gy - 20, 0, 1), opacity:1, offset:.42},
+        {transform:chain(R, 0, el._gy, it.angle * 1.07, 1), opacity:1, offset:.84},
+        {transform:chain(R, 0, el._gy, it.angle, 1), opacity:1}
       ], {duration:900, delay:240 + Math.abs(i - mid) * 30, easing:'cubic-bezier(.3,.7,.2,1)', fill:'backwards'});
     }
   });
@@ -979,8 +985,8 @@ function closeChild(){
     map.delete(k); el.style.pointerEvents = 'none';
     if (calmMQ.matches || !g){ el.remove(); continue; }
     el.animate([
-      {transform:chain(g.R, 0, 0, el._a, 1), opacity:1},
-      {transform:chain(g.R, 0, -12, 0, 1), opacity:1, offset:.5},
+      {transform:chain(g.R, 0, el._gy || 0, el._a, 1), opacity:1},
+      {transform:chain(g.R, 0, (el._gy || 0) - 12, 0, 1), opacity:1, offset:.5},
       {transform:chain(g.R, from.x, from.y, 0, .3), opacity:0}
     ], {duration:440, easing:'cubic-bezier(.5,0,.6,1)', fill:'forwards'}).onfinish = () => el.remove();
   }
@@ -1006,7 +1012,7 @@ function arcFor(n, w, narrow, target, W){
   /* base = the widest canvas a busy deck may use; on tablets it is held to keep cards at 1.1x or more */
   /* flat uses the very same arc with its pivot pushed so far down that the row is straight; every angle-based
      calculation (hit testing, spinning, focus) keeps working unchanged */
-  const R = cardLayout === 'flat' ? 40000 : narrow ? 800 : 1300, base = narrow ? 450 : Math.max(560, Math.min(860, W / 1.1));
+  const R = cardLayout === 'flat' ? 40000 : narrow ? 800 : 1300, base = (narrow ? 450 : Math.max(560, Math.min(860, W / 1.1))) / sizeF();
   /* a straight row has no tilt to peek past, so its cards never overlap: they sit side by side and a busy row spins */
   const minPitch = cardLayout === 'flat' ? w + 8 : state.show === 'all' ? (narrow ? 64 : 76) : w - 2;   /* a value must stay readable; one large value needs the whole card */
   const span = pitch => (n - 1) * pitch + w * 1.2 + 24;
@@ -1022,6 +1028,19 @@ function arcFor(n, w, narrow, target, W){
     drop:(R + CARD_H) * (1 - Math.cos(half * RAD))};
 }
 const MAX_S = 2;
+/* Grid: every card on screen at once in rows, no spinning. Built on the flat row (a far-off pivot) plus a
+   per-row drop, so the card transforms stay the same shape; the page scrolls when the grid is tall. */
+const GRID_GX = 14, GRID_GY = 16;
+function gridFor(n, w, k, dw){
+  const R = 40000, deg = 1 / (R + CARD_H / 2) / RAD;
+  const cols = Math.max(1, Math.min(n, Math.floor((dw / k - 24 + GRID_GX) / (w + GRID_GX))));
+  const rows = Math.max(1, Math.ceil(n / cols)), pos = [];
+  for (let i = 0; i < n; i++){
+    const r = Math.floor(i / cols), c = i % cols, inRow = Math.min(cols, n - r * cols);
+    pos.push({a:(c - (inRow - 1) / 2) * (w + GRID_GX) * deg, gy:r * (CARD_H + GRID_GY)});
+  }
+  return {R, n, w, h:CARD_H, dw, step:(w + GRID_GX) * deg, a0:0, off:0, maxOff:0, shift:0, drop:(rows - 1) * (CARD_H + GRID_GY), pos, rows, cols, grid:true};
+}
 /* height on offer for the deck: from the top of the stage to the bottom of the screen. Measured as if no
    filter orb were open, so opening one does not resize the deck. */
 function roomBelow(drilled){
@@ -1046,22 +1065,25 @@ function renderDecks(){
   const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
   const W = els.stage.clientWidth, narrow = W < 620, K = .5;
   /* the scale the height allows, then the canvas width that scale would give */
-  const roughH = 60 + CARD_H + 44 + (drilled ? 22 + CARD_H * K + 16 : 0);
-  const target = W / Math.max(.9, Math.min(MAX_S, roomBelow(drilled) / roughH));
-
-  const gp = arcFor(n, 120, narrow, drilled ? target / K : target, drilled ? W / K : W);
+  const roughH = 60 + CARD_H + 44 + (drilled ? 22 + CARD_H * K + 16 : 0), f = sizeF(), grid = cardLayout === 'grid';
+  const target = W / Math.max(.9 * f, Math.min(MAX_S * f, roomBelow(drilled) * f / roughH));
   const ts = drilled ? gs[si].tickets.slice().sort(loadCmp) : [];
-  const gc = arcFor(ts.length, 114, narrow, target, W);
+  /* grid: a fixed, comfortable card scale; the columns are whatever fits across at that scale */
+  const gridDW = W / ((narrow ? .78 : 1.15) * f);
+  const gp = grid ? gridFor(n, 120, drilled ? K : 1, gridDW) : arcFor(n, 120, narrow, drilled ? target / K : target, drilled ? W / K : W);
+  const gc = grid ? gridFor(ts.length, 114, 1, gridDW) : arcFor(ts.length, 114, narrow, target, W);
   /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
   if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
   /* 60px of headroom lets the focused card lift and swell; an open ticket needs room above the arc too */
   gc.k = 1; gp.k = drilled ? K : 1;
-  stageDW = drilled ? Math.max(gc.dw, gp.dw * K) : gp.dw;
+  stageDW = grid ? gridDW : drilled ? Math.max(gc.dw, gp.dw * K) : gp.dw;
   stageCapH = 60 + CARD_H + (drilled ? gc.drop + 22 + CARD_H * K : 0) + gp.drop * gp.k + 14;
   stageS = scaleFor();
   /* the ticket pop-up is real pixels; its height becomes headroom above the arc, in design pixels */
   const popPx = fillPop(drilled ? state.selTicket : null, drilled ? gs[si] : null, narrow);
-  const extra = popPx ? popPx / stageS + 10 : 0, TOP = 60 + extra;
+  /* in a grid a ticket below the first row opens over the rows above it, so only the first row needs headroom */
+  const selRow = grid && state.selTicket ? Math.floor(ts.indexOf(state.selTicket) / gc.cols) : 0;
+  const extra = popPx && selRow === 0 ? popPx / stageS + 10 : 0, TOP = 60 + extra;
   gc.y = TOP + CARD_H;
   gp.y = drilled ? gc.y + gc.drop + 22 + CARD_H * K : TOP + CARD_H;
   stageH = stageCapH + extra;
@@ -1072,7 +1094,7 @@ function renderDecks(){
   [els.deckP, els.deckC].forEach(d => d.style.setProperty('--R', gp.R + 'px'));
 
   syncDeck(els.deckP, gs.map((g, i) => {
-    return {key:g.key, cls:'group', angle:gp.a0 + i * gp.step + gp.off, z:i + 1, up:drilled && i === si, dim:drilled && i !== si,
+    return {key:g.key, cls:'group', angle:gp.grid ? gp.pos[i].a : gp.a0 + i * gp.step + gp.off, gy:gp.grid ? gp.pos[i].gy : 0, z:i + 1, up:drilled && i === si, dim:drilled && i !== si,
       html:`<span class="c-name">${g.label}</span>${g.sub ? `<span class="c-sub">${g.sub}</span>` : ''}<span class="c-sub">${g.n} load${g.n === 1 ? '' : 's'}</span>${groupChips(g)}`,
       title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:{name:g.label, meta:`${g.sub ? g.sub + ' · ' : ''}${g.n} load${g.n === 1 ? '' : 's'}`, o:g},
       act:() => drill(g.key)};
@@ -1082,11 +1104,11 @@ function renderDecks(){
 
   if (drilled){
     /* the loads rise out of their group's card in the tray */
-    const aSel = (gp.a0 + si * gp.step + gp.off) * RAD;
-    const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + gp.R * K * (1 - Math.cos(aSel)) - CARD_H * K * .5};
+    const aSel = (gp.grid ? gp.pos[si].a : gp.a0 + si * gp.step + gp.off) * RAD, gySel = gp.grid ? gp.pos[si].gy : 0;
+    const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + (gySel + gp.R * (1 - Math.cos(aSel))) * K - CARD_H * K * .5};
     syncDeck(els.deckC, ts.map((t, i) => {
       const who = state.groupBy === 'grower' ? t.variety : t.grower;
-      return {key:t.id, cls:'load', angle:gc.a0 + i * gc.step + gc.off, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
+      return {key:t.id, cls:'load', angle:gc.grid ? gc.pos[i].a : gc.a0 + i * gc.step + gc.off, gy:gc.grid ? gc.pos[i].gy : 0, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
         html:`<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${state.days.size === 1 ? t.timeShort : t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
         title:`Ticket ${t.id} · lot ${t.lot} · ${t.grower} · ${t.variety} · ${t.day}: ${tip(t)}`,
         lens:{name:'#' + t.id, meta:`Lot ${t.lot} · ${who} · ${t.dayShort} ${t.time}`, o:t},
@@ -1101,8 +1123,10 @@ function renderDecks(){
 }
 /* fewer cards means a narrower canvas, so they are drawn larger; in the side layout an open deck still fits one screen */
 function scaleFor(){
+  const f = sizeF(), W = els.stage.clientWidth;
+  if (cardLayout === 'grid') return Math.min(MAX_S * f, W / stageDW);
   const fitH = roomBelow(state.drilled !== null) / stageCapH;
-  return Math.min(MAX_S, els.stage.clientWidth / stageDW, Math.max(.9, fitH));
+  return Math.min(MAX_S * f, W / stageDW, Math.max(.9, fitH) * f);
 }
 function fitStage(){
   stageS = scaleFor();
@@ -1170,8 +1194,8 @@ function placePop(){
   if (!t || !g || !el){ els.pop.classList.remove('on', 'done'); els.pop._for = null; return; }
   const a = el._a * RAD, r = g.R + CARD_H * 1.1 + 24, S = stageS, W = els.stage.clientWidth;
   /* top of the raised card, from design pixels to real ones */
-  const ax = W / 2 + r * Math.sin(a) * S, ay = (g.y + g.R - r * Math.cos(a)) * S;
-  const w = els.pop.offsetWidth, h = els.pop.offsetHeight, bottom = (g.y - CARD_H - 55) * S;
+  const gy = el._gy || 0, ax = W / 2 + r * Math.sin(a) * S, ay = (g.y + gy + g.R - r * Math.cos(a)) * S;
+  const w = els.pop.offsetWidth, h = els.pop.offsetHeight, bottom = (g.y + gy - CARD_H - 55) * S;
   const left = Math.max(6, Math.min(W - w - 6, ax - w / 2));
   const sx = Math.max(14, Math.min(w - 14, ax - left)), sh = Math.max(0, ay - bottom);
   els.pop.style.left = left.toFixed(1) + 'px';
@@ -1274,6 +1298,7 @@ function deckAt(x, y){
   return null;
 }
 function bandDeck(x, y){
+  if (cardLayout === 'grid'){ const b = gridHit(x, y); return b ? b.parentNode : null; }
   for (const deck of [els.deckC, els.deckP]){
     const g = deck._geo; if (!g || !g.n) continue;
     const q = polar(deck, x, y);
@@ -1281,7 +1306,12 @@ function bandDeck(x, y){
   }
   return null;
 }
-function cardAt(x, y){ const d = deckAt(x, y); return d ? slotAt(d, polar(d, x, y).th) : null; }
+/* grid cards never shift under the pointer, so the element there is the card */
+const gridHit = (x, y) => { const e = document.elementFromPoint(x, y), b = e && e.closest && e.closest('.blade'); return b && !b.classList.contains('enter') && (b.parentNode === els.deckP || b.parentNode === els.deckC) ? b : null; };
+function cardAt(x, y){
+  if (cardLayout === 'grid') return gridHit(x, y);
+  const d = deckAt(x, y); return d ? slotAt(d, polar(d, x, y).th) : null;
+}
 function stopCoast(){
   cancelAnimationFrame(coast); coast = 0; clearTimeout(idleTimer);
   els.deckP.classList.remove('spin'); els.deckC.classList.remove('spin');
@@ -1419,6 +1449,7 @@ function wheelStep(d, dir, x, y){
   wheelPin = {x, y}; setHot(el, true);
 }
 els.stage.addEventListener('wheel', e => {
+  if (cardLayout === 'grid') return;
   const d = bandDeck(e.clientX, e.clientY);
   if (!d) return;
   if (Math.abs(e.deltaY) >= Math.abs(e.deltaX)){
@@ -1733,9 +1764,13 @@ const layoutBtn = $('#layoutBtn');
 function applyLayoutLabel(){ layoutBtn.textContent = 'Cards: ' + LAYOUTS[cardLayout]; }
 function setLayout(next){
   if (next === cardLayout) return;
+  morph(() => { cardLayout = next; store.set('fd-layout', next); applyLayoutLabel(); });
+}
+/* apply a change that moves every card, then glide each one from where it was */
+function morph(change){
   const cards = [...document.querySelectorAll('#deckP .blade, #deckC .blade')].filter(el => !el.classList.contains('enter'));
   const before = new Map(cards.map(el => { const r = el.getBoundingClientRect(); return [el, {x:r.left + r.width / 2, y:r.top + r.height / 2, w:r.width, a:parseFloat(el.style.getPropertyValue('--a')) || 0}]; }));
-  cardLayout = next; store.set('fd-layout', next); applyLayoutLabel();
+  change();
   const page = $('.page'); page.classList.add('snap');
   render();
   void page.offsetWidth;   /* lay out the new positions with no transitions running */
@@ -1751,6 +1786,12 @@ function setLayout(next){
   tick();
 }
 layoutBtn.addEventListener('click', () => { const ks = Object.keys(LAYOUTS); setLayout(ks[(ks.indexOf(cardLayout) + 1) % ks.length]); });
+const sizeBtn = $('#sizeBtn');
+function applySizeLabel(){ sizeBtn.textContent = 'Size: ' + SIZES[cardSize][0]; }
+sizeBtn.addEventListener('click', () => {
+  const ks = Object.keys(SIZES), next = ks[(ks.indexOf(cardSize) + 1) % ks.length];
+  morph(() => { cardSize = next; store.set('fd-size', next); applySizeLabel(); });
+});
 /* Theme: Auto follows the device; Light and Dark pin it. */
 const themeBtn = $('#themeBtn');
 function applyTheme(){
@@ -1809,6 +1850,7 @@ if (window.ResizeObserver){
 darkMQ.addEventListener('change', () => { applyTheme(); render(); });
 theme = ['light','dark'].includes(store.get('fd-theme', 'auto')) ? store.get('fd-theme', 'auto') : 'auto';
 cardLayout = LAYOUTS[store.get('fd-layout', 'curved')] ? store.get('fd-layout', 'curved') : 'curved'; applyLayoutLabel();
+cardSize = SIZES[store.get('fd-size', 'normal')] ? store.get('fd-size', 'normal') : 'normal'; applySizeLabel();
 applyTheme(); readURL(); render();
 })();
 </script>
