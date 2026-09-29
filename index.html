@@ -168,6 +168,7 @@ button,select{font:inherit;color:inherit}
 .layout{margin-top:14px;transition:opacity .5s ease}
 .top{transition:opacity .5s ease}
 .page.reflow .layout,.page.reflow .top{opacity:0;transition:none}
+.page.snap .blade,.page.snap .deck,.page.snap .stage,.page.snap .stage-in,.page.snap .stage-wrap{transition:none!important}
 .btn.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
 /* wide screens (desktop, iPad on its side): filters in a column on the left. An upright iPad keeps them in a row
    so the deck gets the full width. */
@@ -381,6 +382,7 @@ tr:last-child td{border-bottom:0}
         <div class="msep"></div>
         <button class="mi" id="installBtn" role="menuitem">Install on Home Screen</button>
         <div class="mhelp" id="installHelp" hidden></div>
+        <button class="mi" id="layoutBtn" role="menuitem">Cards: Curved</button>
         <button class="mi" id="themeBtn" role="menuitem">Theme: Auto</button>
         <button class="mi" id="sndBtn" role="menuitemcheckbox" aria-checked="false">Sound off</button>
       </div>
@@ -469,6 +471,9 @@ const DIMS = {
 const VCODE = {'Honeycrisp':'HC','Gala':'GA','Fuji':'FJ','Granny Smith':'GS','Cosmic Crisp':'CC'};
 const darkMQ = matchMedia('(prefers-color-scheme: dark)');
 let theme = 'auto';   /* auto | light | dark */
+/* card layout: curved (a hand of cards) or flat (a straight row). A device preference, like the theme. */
+const LAYOUTS = {curved:'Curved', flat:'Flat'};
+let cardLayout = 'curved';
 const isDark = () => theme === 'dark' || (theme === 'auto' && darkMQ.matches);
 const calmMQ = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -999,10 +1004,13 @@ let groupsNow = [], stageDW = 860, stageH = 320, stageCapH = 320, stageS = 1;
    readable spacing and run off the sides, where the deck spins. */
 function arcFor(n, w, narrow, target, W){
   /* base = the widest canvas a busy deck may use; on tablets it is held to keep cards at 1.1x or more */
-  const R = narrow ? 800 : 1300, base = narrow ? 450 : Math.max(560, Math.min(860, W / 1.1));
-  const minPitch = state.show === 'all' ? (narrow ? 64 : 76) : w - 2;   /* a value must stay readable; one large value needs the whole card */
+  /* flat uses the very same arc with its pivot pushed so far down that the row is straight; every angle-based
+     calculation (hit testing, spinning, focus) keeps working unchanged */
+  const R = cardLayout === 'flat' ? 40000 : narrow ? 800 : 1300, base = narrow ? 450 : Math.max(560, Math.min(860, W / 1.1));
+  /* a straight row has no tilt to peek past, so its cards never overlap: they sit side by side and a busy row spins */
+  const minPitch = cardLayout === 'flat' ? w + 8 : state.show === 'all' ? (narrow ? 64 : 76) : w - 2;   /* a value must stay readable; one large value needs the whole card */
   const span = pitch => (n - 1) * pitch + w * 1.2 + 24;
-  const natural = span(w + 10), snug = span(Math.max(minPitch, w * .88));
+  const natural = span(w + 10), snug = span(Math.max(minPitch, cardLayout === 'flat' ? 0 : w * .88));
   const dw = natural <= target ? natural : Math.max(target, Math.min(snug, base));
   const fit = n > 1 ? (dw - 24 - w * 1.2) / (n - 1) : 0;
   const pitch = n > 1 ? Math.min(w + 10, Math.max(minPitch, fit)) : 0;
@@ -1719,6 +1727,30 @@ async function refreshData(quiet){
 }
 refreshBtn.addEventListener('click', e => { e.stopPropagation(); refreshData(false); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastRefresh > 5 * 60 * 1000) refreshData(true); });
+/* Card layout. The two layouts differ wildly in pivot, so letting CSS interpolate between them would sling the
+   cards across the screen; instead snap to the new layout and glide each card from where it was (FLIP). */
+const layoutBtn = $('#layoutBtn');
+function applyLayoutLabel(){ layoutBtn.textContent = 'Cards: ' + LAYOUTS[cardLayout]; }
+function setLayout(next){
+  if (next === cardLayout) return;
+  const cards = [...document.querySelectorAll('#deckP .blade, #deckC .blade')].filter(el => !el.classList.contains('enter'));
+  const before = new Map(cards.map(el => { const r = el.getBoundingClientRect(); return [el, {x:r.left + r.width / 2, y:r.top + r.height / 2, w:r.width, a:parseFloat(el.style.getPropertyValue('--a')) || 0}]; }));
+  cardLayout = next; store.set('fd-layout', next); applyLayoutLabel();
+  const page = $('.page'); page.classList.add('snap');
+  render();
+  void page.offsetWidth;   /* lay out the new positions with no transitions running */
+  if (!calmMQ.matches) cards.forEach(el => {
+    const b = before.get(el); if (!el.isConnected) return;
+    const r = el.getBoundingClientRect(), a = parseFloat(el.style.getPropertyValue('--a')) || 0;
+    el.animate([
+      {translate:`${(b.x - r.left - r.width / 2).toFixed(1)}px ${(b.y - r.top - r.height / 2).toFixed(1)}px`, rotate:`${(b.a - a).toFixed(2)}deg`, scale:`${(b.w / r.width).toFixed(3)}`},
+      {translate:'0px 0px', rotate:'0deg', scale:'1'}
+    ], {duration:620, delay:Math.abs(el._i - (el.parentNode._order || []).length / 2) * 14, easing:'cubic-bezier(.3,1.25,.4,1)', fill:'backwards'});
+  });
+  requestAnimationFrame(() => page.classList.remove('snap'));
+  tick();
+}
+layoutBtn.addEventListener('click', () => { const ks = Object.keys(LAYOUTS); setLayout(ks[(ks.indexOf(cardLayout) + 1) % ks.length]); });
 /* Theme: Auto follows the device; Light and Dark pin it. */
 const themeBtn = $('#themeBtn');
 function applyTheme(){
@@ -1776,6 +1808,7 @@ if (window.ResizeObserver){
 }
 darkMQ.addEventListener('change', () => { applyTheme(); render(); });
 theme = ['light','dark'].includes(store.get('fd-theme', 'auto')) ? store.get('fd-theme', 'auto') : 'auto';
+cardLayout = LAYOUTS[store.get('fd-layout', 'curved')] ? store.get('fd-layout', 'curved') : 'curved'; applyLayoutLabel();
 applyTheme(); readURL(); render();
 })();
 </script>

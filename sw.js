@@ -2,7 +2,7 @@
    newest page; the cache only answers when the network does not. Bump CACHE to drop
    old copies. Service workers need https or localhost, so this does nothing over plain
    http on a LAN address. */
-const CACHE = 'fan-deck-v1';
+const CACHE = 'fan-deck-v2';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -15,7 +15,9 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(req).then(res => {
+    /* no-cache: always check with the server, so an update shows up on the next open instead of hiding behind
+       the browser's own HTTP cache */
+    fetch(req, {cache:'no-cache'}).then(res => {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(req, copy));
       return res;
