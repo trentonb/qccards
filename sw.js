@@ -1,9 +1,9 @@
-/* Offline shell for the fan deck. Network first, so an online device always gets the
+/* Offline shell for QC Cards. Network first, so an online device always gets the
    newest page; the cache only answers when the network does not. Bump CACHE to drop
    old copies. Service workers need https or localhost, so this does nothing over plain
    http on a LAN address. */
-const CACHE = 'fan-deck-v2';
-const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-512.png'];
+const CACHE = 'qc-cards-v3';
+const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-512.png', 'icon-64.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
