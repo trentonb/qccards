@@ -413,7 +413,7 @@ tr:last-child td{border-bottom:0}
         <button class="mi" id="sizeBtn" role="menuitem">Size: Normal</button>
         <button class="mi" id="themeBtn" role="menuitem">Theme: Auto</button>
         <button class="mi" id="hapBtn" role="menuitemcheckbox" aria-checked="true" hidden>Haptics on</button>
-        <button class="mi" id="sndBtn" role="menuitemcheckbox" aria-checked="false">Sound off</button>
+        <button class="mi" id="sndBtn" role="menuitem">Sound: Off</button>
       </div>
     </div>
   </div>
@@ -590,7 +590,7 @@ const state = {
   days: new Set([0]), groupBy: 'variety', sort: 'default',
   filters: {source:new Set(), grower:new Set(), variety:new Set()},
   drilled: null, selTicket: null, openOrb: null,
-  sound: false, show: 'all', table: false
+  sound: 'off', show: 'all', table: false
 };
 const $ = s => document.querySelector(s);
 /* two frames later, or 80ms if the tab is not painting */
@@ -758,7 +758,6 @@ function glassDrag(track, lens, cells, o){
   cells.forEach((c, i) => c.addEventListener('click', e => { if (e.detail === 0) o.tap(i); }));
 }
 /* one tick of feedback: a buzz where the device supports it, plus the optional click */
-let actx = null;
 /* Haptics. Android and other browsers with the Vibration API get a short buzz. Safari on iPhone has no such
    API, but since iOS 18 flipping a switch-style checkbox plays the system's selection tap, so a hidden switch
    is flipped instead. Both only work inside a real touch, and iPads have no haptic motor at all. */
@@ -779,28 +778,49 @@ function buzz(){
   if (navigator.vibrate){ if (!navigator.userActivation || navigator.userActivation.hasBeenActive) navigator.vibrate(8); }
   else { const f = document.activeElement; hapSwitch.click(); if (f && f !== document.body && f.focus) f.focus({preventScroll:true}); }
 }
-function tick(){
-  buzz();
-  if (!state.sound) return;
+/* Sound. Each voice is built once, sample by sample, into a short buffer, so every click is identical in shape,
+   starts with no delay and never pops. Card focus nudges the pitch by position, so sweeping left to right
+   rises slightly: you can hear where you are in the deck. */
+const VOICES = {
+  tick:{name:'Tick', gain:.5, len:.03, make:(t, r) =>        /* a crisp detent, like a watch crown or a picker wheel */
+    r * Math.exp(-t / .0009) * .9 + Math.sin(2 * Math.PI * 4300 * t) * Math.exp(-t / .0035) * .45 + Math.sin(2 * Math.PI * 1650 * t) * Math.exp(-t / .007) * .22},
+  wood:{name:'Wood', gain:.42, len:.09, make:(t, r) =>        /* a small woodblock: three modes that die away at different rates */
+    r * Math.exp(-t / .0012) * .35 + Math.sin(2 * Math.PI * 760 * t) * Math.exp(-t / .024)
+    + Math.sin(2 * Math.PI * 2080 * t) * Math.exp(-t / .011) * .42 + Math.sin(2 * Math.PI * 3420 * t) * Math.exp(-t / .006) * .2},
+  soft:{name:'Soft', gain:.5, len:.07, make:t =>              /* a muted tap, felt more than heard */
+    Math.min(1, t / .0025) * (Math.sin(2 * Math.PI * 440 * t) * Math.exp(-t / .02) + Math.sin(2 * Math.PI * 880 * t) * Math.exp(-t / .009) * .25)}
+};
+let actx = null;
+const voiceBuf = {};
+function voice(k){
+  if (voiceBuf[k]) return voiceBuf[k];
+  const v = VOICES[k], sr = actx.sampleRate, n = Math.floor(sr * v.len), b = actx.createBuffer(1, n, sr), d = b.getChannelData(0);
+  let seed = 7, prev = 0, peak = 0;
+  for (let i = 0; i < n; i++){
+    seed = (seed * 16807) % 2147483647;
+    const w = seed / 1073741823.5 - 1, hp = w - prev; prev = w;   /* differenced noise: the bright, click part */
+    d[i] = v.make(i / sr, hp * .5); peak = Math.max(peak, Math.abs(d[i]));
+  }
+  const fade = Math.floor(sr * .004);
+  for (let i = 0; i < n; i++) d[i] = d[i] / peak * (i > n - fade ? (n - i) / fade : 1);   /* normalise, and fade the tail to silence */
+  return voiceBuf[k] = b;
+}
+function playVoice(k, pos){
+  if (!VOICES[k]) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
-    /* the flick of a stiff card: a few milliseconds of filtered noise over a soft woody knock */
-    const t = actx.currentTime, len = Math.floor(actx.sampleRate * .03);
-    if (!tick.noise){
-      tick.noise = actx.createBuffer(1, len, actx.sampleRate);
-      const d = tick.noise.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
-    }
-    const n = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();
-    n.buffer = tick.noise; n.playbackRate.value = .9 + Math.random() * .2;   /* no two flicks quite alike */
-    bp.type = 'bandpass'; bp.frequency.value = 2400; bp.Q.value = .8; ng.gain.value = .22;
-    n.connect(bp); bp.connect(ng); ng.connect(actx.destination); n.start(t);
-    const o = actx.createOscillator(), og = actx.createGain();
-    o.type = 'sine'; o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(140, t + .04);
-    og.gain.setValueAtTime(.0001, t); og.gain.exponentialRampToValueAtTime(.09, t + .003); og.gain.exponentialRampToValueAtTime(.0001, t + .05);
-    o.connect(og); og.connect(actx.destination); o.start(t); o.stop(t + .06);
+    const src = actx.createBufferSource(), g = actx.createGain();
+    src.buffer = voice(k);
+    src.playbackRate.value = (pos === undefined ? 1 : .94 + pos * .14) * (.99 + Math.random() * .02);
+    g.gain.value = VOICES[k].gain;
+    src.connect(g); g.connect(actx.destination); src.start();
   } catch (e) {}
+}
+/* pos: 0..1 across the deck for card focus, left out for everything else */
+function tick(pos){
+  buzz();
+  if (state.sound !== 'off') playVoice(state.sound, pos);
 }
 glassDrag(els.days, dayLens, dayCells, {
   grab: i => { setDays(i, i); render(); },
@@ -1331,7 +1351,7 @@ function setHot(el, feedback){
   const was = hot && hot.parentNode;
   if (hot) hot.classList.remove('hot');
   hot = el;
-  if (hot){ hot.classList.add('hot'); if (feedback) tick(); }
+  if (hot){ hot.classList.add('hot'); if (feedback){ const n = (hot.parentNode._order || []).length; tick(n > 1 ? hot._i / (n - 1) : .5); } }
   if (was) applyHot(was);
   if (hot && hot.parentNode !== was) applyHot(hot.parentNode);
   renderLens(); if (scrubOn) renderScrub(false);
@@ -1603,8 +1623,8 @@ function render(){
   renderDays(); renderShow(); renderOrbs(false); renderDecks(); renderCrumbs(); renderTable();
   if (hot && !hot.isConnected) hot = null;
   renderLens();
-  els.sndBtn.textContent = state.sound ? 'Sound on' : 'Sound off';
-  els.sndBtn.classList.toggle('live', state.sound); els.sndBtn.setAttribute('aria-checked', state.sound);
+  els.sndBtn.textContent = 'Sound: ' + (VOICES[state.sound] ? VOICES[state.sound].name : 'Off');
+  els.sndBtn.classList.toggle('live', state.sound !== 'off');
   els.tableWrap.classList.toggle('open', state.table); els.tableWrap.inert = !state.table;
   els.tblBtn.classList.toggle('live', state.table); els.tblBtn.setAttribute('aria-pressed', state.table);
   els.resetBtn.classList.toggle('live', !isDefault());
@@ -2015,11 +2035,13 @@ themeBtn.addEventListener('click', () => {
 });
 els.resetBtn.addEventListener('click', e => { e.stopPropagation(); resetView(); });
 els.sndBtn.addEventListener('click', () => {
-  state.sound = !state.sound;
-  try { localStorage.setItem('fd-sound', state.sound ? '1' : '0'); } catch (e) {}
+  const ks = ['off', ...Object.keys(VOICES)];
+  state.sound = ks[(ks.indexOf(state.sound) + 1) % ks.length];
+  try { localStorage.setItem('fd-sound', state.sound); } catch (e) {}
   tick(); render();
 });
-try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
+/* older copies stored 1/0 for the one click there was; 1 becomes the nearest new voice */
+try { const v = localStorage.getItem('fd-sound'); state.sound = v === '1' ? 'wood' : VOICES[v] ? v : 'off'; } catch (e) { state.sound = 'off'; }
 /* the haptics switch only shows on touch devices; it is on unless someone turns it off */
 const hapBtn = $('#hapBtn');
 haptics = store.get('fd-haptics', true) !== false; hapBtn.hidden = !touchUI;

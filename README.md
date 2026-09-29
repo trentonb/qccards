@@ -38,7 +38,7 @@ Averages and standard deviations are worked out from the samples.
 - Cards: tap to open. Press and slide to move across them, or run a thumb along the strip under the deck to sweep through every card. Scroll the mouse wheel over them to step through. Tap empty space to go back a level.
 - Search (magnifier, or press / or Ctrl+K): type a ticket or lot number, or part of a grower or variety name, and jump straight to it.
 - Table icon: opens every load in scope as a sortable table.
-- Menu: save a view, set Home, install on the home screen, choose the card layout (Curved, Flat or Grid) and card size (Normal, Large or Compact), change the theme, turn the sound on or off.
+- Menu: save a view, set Home, install on the home screen, choose the card layout (Curved, Flat or Grid) and card size (Normal, Large or Compact), change the theme, pick a click sound (Tick, Wood or Soft) or turn it off.
 
 Saved views, Home, theme and sound are stored in each browser, so every device keeps its own.
 
