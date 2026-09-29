@@ -122,6 +122,15 @@ button,select{font:inherit;color:inherit}
 .vchip em{font-style:normal;font-size:12px;font-weight:600;opacity:.6;font-variant-numeric:tabular-nums}
 .vchip.zero{opacity:.38!important;cursor:default}
 .vchip.pk{height:42px;padding:0 15px}
+/* search results: one row per hit, grouped by kind */
+.sr-list{display:flex;flex-direction:column;gap:2px;max-height:min(60vh,520px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+.sr-h{margin:8px 12px 2px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.sr-h:first-child{margin-top:0}
+.sr{display:flex;align-items:baseline;gap:12px;min-height:46px;padding:8px 12px;border:0;border-radius:12px;background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sr:hover,.sr.act{background:var(--surface-2)}
+.sr b{flex:none;min-width:4.4em;font-size:15px;font-weight:650;font-variant-numeric:tabular-nums}
+.sr span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--ink-2)}
+.sr mark{background:var(--bg-highlight,rgba(250,178,25,.33));color:inherit;border-radius:3px}
 .vp-e{margin:6px 2px 0;font-size:13px;color:var(--ink-2)}
 /* upright iPad: the top row is full, so the pill takes its own row */
 @media (min-width:701px) and (max-width:899px){.views{grid-column:1 / -1;grid-row:2}}
@@ -302,6 +311,18 @@ button,select{font:inherit;color:inherit}
 .pop.wide .pop-n{margin-top:10px}
 .pop-x{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line-2);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;cursor:pointer;padding:0;color:var(--ink-2)}
 /* go back down a level */
+/* thumb strip: slide along it to sweep the focus through every card in the deck */
+.scrub{position:absolute;left:50%;bottom:var(--sb,6px);z-index:31;width:min(600px,calc(100% - 32px));height:48px;transform:translateX(-50%);touch-action:none;cursor:grab;display:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.scrub.on{display:block}
+.scrub:focus-visible{outline:none}
+.scrub:focus-visible .sc-track{outline:2px solid var(--accent);outline-offset:2px}
+.sc-track{position:absolute;inset:6px 0;border-radius:999px;border:1px solid var(--line);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6)}
+.sc-ticks{position:absolute;inset:0 22px}
+.sc-ticks i{position:absolute;top:50%;width:3px;height:10px;margin:-5px 0 0 -1.5px;border-radius:2px;background:var(--line-2);transition:background .2s,height .2s,margin .2s}
+.sc-ticks i.on{background:var(--ink-2);height:16px;margin-top:-8px}
+.sc-knob{position:absolute;top:3px;bottom:3px;left:22px;width:44px;margin-left:-22px;border-radius:999px;background:var(--glass-fill);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);transition:left .28s cubic-bezier(.3,1.4,.5,1),transform .2s cubic-bezier(.3,1.7,.5,1)}
+.scrub.drag{cursor:grabbing}
+.scrub.drag .sc-knob{transition:transform .2s cubic-bezier(.3,1.7,.5,1);transform:scale(1.12,1.18)}
 .down{position:absolute;left:50%;bottom:6px;z-index:30;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 12px;border-radius:999px;cursor:pointer;font-size:13px;color:var(--ink);border:1px solid var(--line-2);background:var(--glass-track);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);box-shadow:var(--shadow);transform:translate(-50%,14px);opacity:0;pointer-events:none;transition:transform .4s cubic-bezier(.3,1.5,.5,1),opacity .25s;-webkit-tap-highlight-color:transparent}
 .down.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 .down:active{transform:translate(-50%,0) scale(.94)}
@@ -334,6 +355,12 @@ tr:last-child td{border-bottom:0}
   .crumbs .hint,.crumbs .btn{display:none}   /* the down arrow under the deck already goes back */
   .bar{flex-wrap:nowrap}
   .crumbs{min-width:0;flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
+  .bar{gap:6px}
+  .crumbs{flex:1 1 0}
+  .crumbs strong{overflow:hidden;text-overflow:ellipsis}
+  .bar .grow{display:none}
+  .reset.tbl{width:38px;height:38px}
+  .seg.small button{padding:4px 10px}
   .side{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
   .orbs{width:100%}
   .side .btn{flex:none;min-height:36px;padding:4px 12px}
@@ -401,6 +428,11 @@ tr:last-child td{border-bottom:0}
     <div class="vp-g" id="pkGrid"></div>
   </div>
 
+  <div class="vpanel pick" id="search" role="dialog" aria-label="Search">
+    <div class="pk-s"><input id="srQ" type="search" placeholder="Ticket, lot, grower or variety" aria-label="Search" autocomplete="off" enterkeyhint="go"><button class="btn" id="srDone">Done</button></div>
+    <div class="sr-list" id="srList" role="listbox"></div>
+  </div>
+
   <div class="layout">
   <aside class="side">
     <div class="orbs" id="orbs"></div>
@@ -416,6 +448,9 @@ tr:last-child td{border-bottom:0}
       <button data-k="st" title="Starch (1–6)">St</button>
       <button data-k="ss" title="Soluble solids (°Bx)">SS</button>
     </div>
+    <button class="reset tbl" id="searchBtn" aria-label="Search tickets, lots, growers and varieties" aria-haspopup="true" aria-expanded="false" title="Search (/)">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/></svg>
+    </button>
     <button class="reset tbl" id="tblBtn" aria-label="Show loads as a table" aria-pressed="false" title="Table of loads">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></svg>
     </button>
@@ -435,6 +470,9 @@ tr:last-child td{border-bottom:0}
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       <span id="downLbl"></span>
     </button>
+    <div class="scrub" id="scrub" role="slider" tabindex="0" aria-label="Cycle through the cards" aria-valuemin="1">
+      <div class="sc-track"><span class="sc-ticks" id="scTicks"></span><span class="sc-knob" id="scKnob"></span></div>
+    </div>
   </div>
   </div>
 
@@ -1015,10 +1053,10 @@ function arcFor(n, w, narrow, target, W){
   const R = cardLayout === 'flat' ? 40000 : narrow ? 800 : 1300, base = (narrow ? 450 : Math.max(560, Math.min(860, W / 1.1))) / sizeF();
   /* a straight row has no tilt to peek past, so its cards never overlap: they sit side by side and a busy row spins */
   const minPitch = cardLayout === 'flat' ? w + 8 : state.show === 'all' ? (narrow ? 64 : 76) : w - 2;   /* a value must stay readable; one large value needs the whole card */
-  const span = pitch => (n - 1) * pitch + w * 1.2 + 24;
+  const span = pitch => (n - 1) * pitch + w * 1.2 + 48;
   const natural = span(w + 10), snug = span(Math.max(minPitch, cardLayout === 'flat' ? 0 : w * .88));
   const dw = natural <= target ? natural : Math.max(target, Math.min(snug, base));
-  const fit = n > 1 ? (dw - 24 - w * 1.2) / (n - 1) : 0;
+  const fit = n > 1 ? (dw - 48 - w * 1.2) / (n - 1) : 0;
   const pitch = n > 1 ? Math.min(w + 10, Math.max(minPitch, fit)) : 0;
   const deg = 1 / (R + CARD_H / 2) / RAD, step = pitch * deg;
   const half = Math.min((n - 1) / 2 * step, dw / 2 * deg);
@@ -1045,7 +1083,7 @@ function gridFor(n, w, k, dw){
    filter orb were open, so opening one does not resize the deck. */
 function roomBelow(drilled){
   const top = els.lens.getBoundingClientRect().bottom + scrollY - (sideMQ.matches ? 0 : Math.max(0, els.orbs.offsetHeight - (20 + PS + 6)));
-  return Math.max(260, innerHeight - top - 22 - (drilled ? 58 : 0));
+  return Math.max(260, innerHeight - top - 22 - (drilled ? 58 : 0) - (scrubOn ? 52 : 0));
 }
 /* keep the spin position while the same deck is on screen; a new deck starts at its first card */
 function carryOff(deck, g, key, centre){
@@ -1058,12 +1096,15 @@ function spinTo(deck, off){
   g.off = Math.max(-g.maxOff, Math.min(g.maxOff, off));
   deck._order.forEach((el, i) => { el._a = g.a0 + i * g.step + g.off; el.style.setProperty('--a', angleFor(deck, el).toFixed(2) + 'deg'); });
   if (deck === els.deckC) placePop();
+  if (scrubOn && !hot) renderScrub(false);
 }
 function renderDecks(){
   const gs = groupsNow = computeGroups(), n = gs.length;
   if (state.drilled !== null && !gs.some(g => g.key === state.drilled)){ closeChild(); state.drilled = null; state.selTicket = null; }
   const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
   const W = els.stage.clientWidth, narrow = W < 620, K = .5;
+  /* the thumb strip joins any deck of two or more cards; a grid already shows every card */
+  scrubOn = cardLayout !== 'grid' && (drilled ? gs[si].tickets.length : n) > 1;
   /* the scale the height allows, then the canvas width that scale would give */
   const roughH = 60 + CARD_H + 44 + (drilled ? 22 + CARD_H * K + 16 : 0), f = sizeF(), grid = cardLayout === 'grid';
   const target = W / Math.max(.9 * f, Math.min(MAX_S * f, roomBelow(drilled) * f / roughH));
@@ -1119,7 +1160,7 @@ function renderDecks(){
     }), from);
   }
   placePop(); renderDown();
-  fitStage();
+  fitStage(); renderScrub(true);
 }
 /* fewer cards means a narrower canvas, so they are drawn larger; in the side layout an open deck still fits one screen */
 function scaleFor(){
@@ -1134,7 +1175,7 @@ function fitStage(){
   els.stageIn.style.setProperty('--s', stageS.toFixed(4));
   const spare = roomBelow(state.drilled !== null) - stageCapH * stageS;
   els.stage.parentElement.style.marginTop = Math.max(0, Math.round(spare * .35)) + 'px';
-  els.stage.style.height = (Math.round(stageH * stageS) + (state.drilled !== null ? 58 : 0)) + 'px';   /* plus the down button's row */
+  els.stage.style.height = (Math.round(stageH * stageS) + (state.drilled !== null ? 58 : 0) + (scrubOn ? 52 : 0)) + 'px';   /* plus the rows for the down button and the thumb strip */
 }
 
 /* ------------------------------------------------------------------ crumbs */
@@ -1251,7 +1292,7 @@ els.table.addEventListener('click', e => {
 });
 
 /* ------------------------------------------------- lens, scrub and pinch */
-let lensNote = '';
+let lensNote = '', scrubOn = false;
 let hot = null, suppressClick = false, scrub = null, pinch0 = 0, coast = 0, idleTimer = 0;
 const touches = new Map();
 const noHover = matchMedia('(hover: none)');
@@ -1273,7 +1314,7 @@ function setHot(el, feedback){
   if (hot){ hot.classList.add('hot'); if (feedback) tick(); }
   if (was) applyHot(was);
   if (hot && hot.parentNode !== was) applyHot(hot.parentNode);
-  renderLens();
+  renderLens(); if (scrubOn) renderScrub(false);
 }
 /* Pointer position as an angle around a deck's pivot. Cards are found by their fixed slot in the arc,
    not by what is drawn under the pointer, so the focus does not flicker while neighbours slide apart. */
@@ -1429,7 +1470,7 @@ function endPointer(e){
   if (up && h){ suppressClick = true; setTimeout(() => { suppressClick = false; }, 450); h._act && h._act(); }
 }
 /* a click that is only closing a menu or an open filter orb should not also step back */
-const busyElsewhere = () => !!state.openOrb || viewsOpen || !!pickerDim || $('#menu').classList.contains('open');
+const busyElsewhere = () => !!state.openOrb || viewsOpen || searchOpen || !!pickerDim || $('#menu').classList.contains('open');
 $('.main').addEventListener('click', e => {
   if (e.detail === 0 || suppressClick || busyElsewhere() || e.target.closest('button,.pop,.seg,.tw,#stage,a,input')) return;
   stepBack();
@@ -1437,6 +1478,62 @@ $('.main').addEventListener('click', e => {
 /* Over the cards, the mouse wheel steps the focus from card to card (turning a crowded deck to keep it in
    view); a sideways trackpad swipe spins a crowded deck directly. Anywhere else the page scrolls as usual. */
 let wheelTimer = 0, wheelAcc = 0, wheelPin = null;
+/* bring card ni of deck d into focus, turning a busy deck so it stays in view */
+function focusCard(d, ni){
+  const g = d._geo; if (!g || !d._order) return;
+  ni = Math.max(0, Math.min(g.n - 1, ni)); const el = d._order[ni]; if (!el) return;
+  if (g.maxOff > 0){
+    const deg = 1 / (g.R + g.h / 2) / RAD, vis = (g.dw / 2 - g.w * .62) * deg, a = g.a0 + ni * g.step + g.off;
+    if (a > vis) spinTo(d, g.off - (a - vis)); else if (a < -vis) spinTo(d, g.off + (-vis - a));
+  }
+  setHot(el, true);
+}
+const activeDeck = () => state.drilled !== null && els.deckC._geo ? els.deckC : els.deckP;
+/* where the knob sits: on the focused card, or else on whichever card is at the centre of the deck */
+function scrubIndex(){
+  const d = activeDeck(), g = d._geo; if (!g) return 0;
+  if (hot && hot.parentNode === d) return hot._i;
+  return g.step > 0 ? Math.max(0, Math.min(g.n - 1, Math.round((-g.off - g.a0) / g.step))) : 0;
+}
+function renderScrub(rebuild){
+  const sc = $('#scrub'); sc.classList.toggle('on', scrubOn);
+  sc.style.setProperty('--sb', (state.drilled !== null ? 58 : 6) + 'px');
+  if (!scrubOn) return;
+  const d = activeDeck(), n = d._geo ? d._geo.n : 0, ticks = $('#scTicks');
+  if (rebuild || ticks._n !== n){
+    ticks._n = n;
+    /* one tick per card while they fit; past that the knob alone tells the position */
+    ticks.innerHTML = n <= 48 ? Array.from({length:n}, (_, i) => `<i style="left:${(n > 1 ? i / (n - 1) * 100 : 50).toFixed(2)}%"></i>`).join('') : '';
+  }
+  const i = scrubIndex(), frac = n > 1 ? i / (n - 1) : .5, W = sc.clientWidth - 44;
+  $('#scKnob').style.left = (22 + frac * W).toFixed(1) + 'px';
+  [...ticks.children].forEach((t, j) => t.classList.toggle('on', j === i && !!hot));
+  sc.setAttribute('aria-valuemax', n); sc.setAttribute('aria-valuenow', i + 1);
+  const L = d._order && d._order[i] && d._order[i]._lens; sc.setAttribute('aria-valuetext', L ? `${i + 1} of ${n}: ${L.name}` : `${i + 1} of ${n}`);
+}
+(() => {
+  const sc = $('#scrub'); let drag = null;
+  const idxAt = x => { const r = sc.getBoundingClientRect(), n = activeDeck()._geo ? activeDeck()._geo.n : 1; return Math.round(Math.max(0, Math.min(1, (x - r.left - 22) / (r.width - 44))) * (n - 1)); };
+  const go = x => { const i = idxAt(x); if (!drag || i !== drag.i){ if (drag) drag.i = i; wheelPin = {x:-1e4, y:-1e4}; focusCard(activeDeck(), i); } };
+  sc.addEventListener('pointerdown', e => {
+    e.stopPropagation(); if (e.button) return;
+    stopCoast(); drag = {id:e.pointerId, i:-1}; sc.classList.add('drag');
+    try { sc.setPointerCapture(e.pointerId); } catch (err) {}
+    go(e.clientX);
+  });
+  sc.addEventListener('pointermove', e => { e.stopPropagation(); if (drag && e.pointerId === drag.id) go(e.clientX); });
+  const end = e => { e.stopPropagation(); if (drag && e.pointerId === drag.id){ drag = null; sc.classList.remove('drag'); } };
+  sc.addEventListener('pointerup', end); sc.addEventListener('pointercancel', end);
+  sc.addEventListener('click', e => e.stopPropagation());
+  sc.addEventListener('wheel', e => e.stopPropagation());
+  /* keyboard: arrows move, Home and End jump, Enter opens the focused card */
+  sc.addEventListener('keydown', e => {
+    const d = activeDeck(), i = scrubIndex(), n = d._geo ? d._geo.n : 0;
+    const to = {ArrowRight:i + 1, ArrowDown:i + 1, ArrowLeft:i - 1, ArrowUp:i - 1, Home:0, End:n - 1}[e.key];
+    if (to !== undefined){ e.preventDefault(); e.stopPropagation(); wheelPin = {x:-1e4, y:-1e4}; focusCard(d, to); }
+    else if (e.key === 'Enter' && hot && hot._act){ e.preventDefault(); e.stopPropagation(); hot._act(); }
+  });
+})();
 function wheelStep(d, dir, x, y){
   const g = d._geo, under = cardAt(x, y);
   const cur = hot && hot.parentNode === d ? hot._i : under && under.parentNode === d ? under._i : (dir > 0 ? -1 : g.n);
@@ -1510,11 +1607,24 @@ function viewParams(){
   if (state.sort !== 'default') q.set('sort', state.sort);
   if (state.show !== 'all') q.set('show', state.show);
   for (const k in state.filters) if (state.filters[k].size) q.set(k, [...state.filters[k]].sort().join('|'));
+  q.set('cards', cardLayout); q.set('size', cardSize);   /* how the cards look travels with the view */
   return q;
 }
 const viewString = () => viewParams().toString();
-function applyView(str){ closeChild(); readParams(new URLSearchParams(str)); }
-function isDefault(){ return viewString() === homeView() && state.drilled === null && !state.selTicket && !state.table; }
+/* views saved before layouts existed (and the built-in Home) carry no cards/size: they match any layout */
+function sameView(saved, now){
+  const a = new URLSearchParams(saved), b = new URLSearchParams(now);
+  ['cards', 'size'].forEach(k => { if (!a.has(k)) b.delete(k); });
+  return a.toString() === b.toString();
+}
+/* a view that changes the layout or size glides the cards there, like the menu does */
+function applyView(str){
+  const q = new URLSearchParams(str), L = q.get('cards'), Z = q.get('size');
+  closeChild();
+  if ((LAYOUTS[L] && L !== cardLayout) || (SIZES[Z] && Z !== cardSize)) morph(() => readParams(q));
+  else readParams(q);
+}
+function isDefault(){ return sameView(homeView(), viewString()) && state.drilled === null && !state.selTicket && !state.table; }
 function resetView(){
   state.openOrb = null; applyView(homeView());
   els.resetBtn.classList.remove('go'); void els.resetBtn.offsetWidth; els.resetBtn.classList.add('go');
@@ -1522,6 +1632,80 @@ function resetView(){
 }
 const ICON_HOME = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/></svg>';
 /* one pill per saved view; the pill that matches the screen is filled and carries its delete button */
+/* ---------------------------------------------------------- search: tickets, lots, growers, varieties */
+let searchOpen = false, srHits = [], srAct = 0;
+const esc = v => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hl = (v, q) => { const t = String(v), i = t.toLowerCase().indexOf(q); return i < 0 ? esc(t) : esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length)); };
+function searchHits(raw){
+  const q = raw.trim().toLowerCase(); if (!q) return [];
+  const has = v => String(v).toLowerCase().includes(q), hits = [];
+  /* newest first: the load someone is asking about is usually a recent one */
+  TICKETS.filter(t => has(t.id)).sort((a, b) => b.ts - a.ts).slice(0, 12)
+    .forEach(t => hits.push({kind:'Tickets', key:'ticket', v:t, b:hl(t.id, q), m:`Lot ${esc(t.lot)} · ${esc(t.grower)} · ${esc(t.variety)} · ${esc(t.day)} ${esc(t.time)}`}));
+  const uniq = (k, show) => [...new Set(TICKETS.map(t => t[k]))].filter(has).sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric:true})).slice(0, 10)
+    .forEach(v => { const ts = TICKETS.filter(t => t[k] === v); hits.push({kind:DIMS[k].plural[0].toUpperCase() + DIMS[k].plural.slice(1), key:k, v, b:hl(show(v), q), m:`${ts.length} load${ts.length === 1 ? '' : 's'} this week${k === 'lot' ? ' · ' + esc(ts[0].grower) + ' · ' + esc(ts[0].variety) : ''}`}); });
+  uniq('lot', v => 'Lot ' + v); uniq('grower', v => v); uniq('variety', v => v);
+  return hits;
+}
+function renderSearch(){
+  const list = $('#srList'), q = $('#srQ').value;
+  srHits = searchHits(q); srAct = Math.min(srAct, Math.max(0, srHits.length - 1));
+  if (!q.trim()){ list.innerHTML = '<p class="vp-e">Type a ticket or lot number, or part of a grower or variety name.</p>'; return; }
+  if (!srHits.length){ list.innerHTML = '<p class="vp-e">Nothing in the last seven days matches that.</p>'; return; }
+  let h = '', last = '';
+  srHits.forEach((x, i) => {
+    if (x.kind !== last){ h += `<div class="sr-h">${x.kind}</div>`; last = x.kind; }
+    h += `<button class="sr${i === srAct ? ' act' : ''}" data-i="${i}" role="option" aria-selected="${i === srAct}"><b>${x.b}</b><span>${x.m}</span></button>`;
+  });
+  list.innerHTML = h;
+}
+/* go to a hit: widen the period and drop filters only as far as needed to bring it into view */
+function jumpTo(x){
+  setSearch(false); closeChild();
+  const ts = x.key === 'ticket' ? [x.v] : TICKETS.filter(t => t[x.key] === x.v);
+  const r = dayRange(), idx = ts.map(t => 6 - t.daysAgo);
+  if (!idx.some(i => i >= r.i0 && i <= r.i1)){ const lo = Math.min(...idx); setDays(Math.min(lo, r.i0), 6); }
+  for (const k in state.filters){ const f = state.filters[k]; if (f.size && !ts.some(t => f.has(t[k]))) f.clear(); }
+  if (x.key === 'ticket'){ state.drilled = x.v[state.groupBy]; state.selTicket = x.v; }
+  else { state.groupBy = x.key; state.drilled = x.v; state.selTicket = null; }
+  state.openOrb = null; tick(); renderOrbs(true); render();
+  /* a busy deck turns so the ticket found is in the middle of the screen, not off the edge */
+  if (x.key === 'ticket'){ const d = els.deckC, g = d._geo, el = d._map && d._map.get(x.v.id); if (g && el && g.maxOff > 0) spinTo(d, -(g.a0 + el._i * g.step)); }
+  setTimeout(() => els.stage.scrollIntoView({block:'nearest', behavior:'smooth'}), 120);
+}
+function setSearch(open){
+  const panel = $('#search'), btn = $('#searchBtn');
+  if (open === searchOpen) return;
+  searchOpen = open; btn.setAttribute('aria-expanded', open); btn.classList.toggle('live', open);
+  if (open){
+    setMenu(false); if (viewsOpen) setViews(false); setPicker(null); state.openOrb = null; renderOrbs(true);
+    const page = $('.page').getBoundingClientRect(), b = btn.getBoundingClientRect();
+    const width = Math.min(560, page.width - 24), left = Math.max(12, Math.min(page.width - width - 12, b.right - page.left - width));
+    panel.style.width = width + 'px'; panel.style.left = left + 'px'; panel.style.top = (b.bottom - page.top + 10) + 'px';
+    panel.style.setProperty('--ox', (b.left + b.width / 2 - page.left - left).toFixed(0) + 'px'); panel.style.setProperty('--oy', '0px');
+    renderSearch(); tick();
+    setTimeout(() => $('#srQ').focus(), 80);   /* someone who taps Search means to type */
+  } else $('#srQ').blur();
+  panel.classList.toggle('open', open);
+}
+$('#searchBtn').addEventListener('click', e => { e.stopPropagation(); setSearch(!searchOpen); });
+$('#search').addEventListener('click', e => e.stopPropagation());
+$('#srDone').addEventListener('click', () => setSearch(false));
+$('#srQ').addEventListener('input', () => { srAct = 0; renderSearch(); });
+$('#srQ').addEventListener('keydown', e => {
+  e.stopPropagation();
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); srAct = Math.max(0, Math.min(srHits.length - 1, srAct + (e.key === 'ArrowDown' ? 1 : -1))); renderSearch(); const a = $('#srList .act'); if (a) a.scrollIntoView({block:'nearest'}); }
+  if (e.key === 'Enter' && srHits[srAct]) jumpTo(srHits[srAct]);
+  if (e.key === 'Escape') setSearch(false);
+});
+$('#srList').addEventListener('click', e => { const b = e.target.closest('.sr'); if (b) jumpTo(srHits[+b.dataset.i]); });
+document.addEventListener('click', () => setSearch(false));
+/* "/" or Ctrl+K opens search from anywhere that is not already a text box */
+document.addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  if (e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')){ e.preventDefault(); setSearch(true); }
+});
+
 /* ---------------------------------------------------------- picker sheet for long filters */
 let pickerDim = null, pickerOb = null;
 function renderPicker(){
@@ -1560,7 +1744,7 @@ function renderPicker(){
 function setPicker(ob){
   const panel = $('#picker');
   if (!ob){ if (pickerDim){ pickerDim = null; pickerOb = null; panel.classList.remove('open'); renderOrbs(false); } return; }
-  setMenu(false); if (viewsOpen) setViews(false);
+  setMenu(false); if (viewsOpen) setViews(false); setSearch(false);
   state.openOrb = null; renderOrbs(true);
   pickerDim = ob.k; pickerOb = ob; $('#pkSearch').value = ''; $('#pkSearch').placeholder = 'Search ' + ob.name.toLowerCase() + 's';
   /* beside the orb in the column layout, under the row of orbs otherwise; it grows out of the orb */
@@ -1586,7 +1770,7 @@ document.addEventListener('click', () => setPicker(null));
 /* the pill shows the view on screen (or just "Views"); the sheet lists them all */
 let viewsOpen = false, viewsEdit = false, viewsSaving = false, viewsFresh = null;
 function renderViews(){
-  const vs = loadViews(), now = viewString(), home = homeView(), hit = vs.find(v => v.q === now);
+  const vs = loadViews(), now = viewString(), home = homeView(), hit = vs.find(v => sameView(v.q, now));
   const btn = $('#viewsBtn');
   $('#views').classList.toggle('empty', !vs.length);
   $('#viewsLbl').textContent = hit ? hit.name : 'Views';
@@ -1600,8 +1784,10 @@ function renderViews(){
   grid.innerHTML = '';
   vs.forEach((v, i) => {
     const b = document.createElement('button');
-    b.className = 'vchip' + (v.q === now ? ' on' : ''); b.style.setProperty('--i', i); b.setAttribute('aria-pressed', v.q === now);
-    b.innerHTML = (v.q === home ? ICON_HOME : '') + '<span></span><span class="vx" aria-label="Delete">×</span>';
+    const on = sameView(v.q, now);
+    b.className = 'vchip' + (on ? ' on' : ''); b.style.setProperty('--i', i); b.setAttribute('aria-pressed', on);
+    const vq = new URLSearchParams(v.q), vl = vq.get('cards'), vz = vq.get('size');
+    b.innerHTML = (v.q === home ? ICON_HOME : '') + '<span></span>' + (LAYOUTS[vl] ? `<em>${LAYOUTS[vl]}${vz && vz !== 'normal' && SIZES[vz] ? ' · ' + SIZES[vz][0] : ''}</em>` : '') + '<span class="vx" aria-label="Delete">×</span>';
     b.querySelector('span').textContent = v.name;
     b.title = v.q === home ? v.name + ' (Home)' : v.name;
     b.addEventListener('click', e => {
@@ -1634,7 +1820,7 @@ function setViews(open){
   const panel = $('#vpanel'), btn = $('#viewsBtn'), top = $('.top');
   viewsOpen = open; if (!open){ viewsEdit = false; viewsSaving = false; }
   if (open){
-    setMenu(false); setPicker(null); state.openOrb = null; renderOrbs(true);
+    setMenu(false); setPicker(null); setSearch(false); state.openOrb = null; renderOrbs(true);
     /* drop from just under the top bar, growing out of the pill */
     panel.style.top = (top.offsetTop + top.offsetHeight + 8) + 'px';
     const pr = panel.getBoundingClientRect(), br = btn.getBoundingClientRect();
@@ -1663,6 +1849,9 @@ function writeURL(){
   try { history.replaceState(null, '', '#' + q.toString()); } catch (e) {}
 }
 function readParams(q){
+  const L = q.get('cards'), Z = q.get('size');
+  if (LAYOUTS[L] && L !== cardLayout){ cardLayout = L; store.set('fd-layout', L); layoutBtn.textContent = 'Cards: ' + LAYOUTS[L]; }
+  if (SIZES[Z] && Z !== cardSize){ cardSize = Z; store.set('fd-size', Z); sizeBtn.textContent = 'Size: ' + SIZES[Z][0]; }
   const d = /^([0-6])-([0-6])$/.exec(q.get('days') || '');
   if (d && +d[1] <= +d[2]) setDays(+d[1], +d[2]);
   if (DIMS[q.get('by')]) state.groupBy = q.get('by');
@@ -1682,6 +1871,7 @@ addEventListener('hashchange', () => { closeChild(); readURL(); render(); });
 const menuBtn = $('#menuBtn'), menu = $('#menu');
 function setMenu(open){
   if (open && viewsOpen) setViews(false);
+  if (open && searchOpen) setSearch(false);
   if (open) setPicker(null);
   menu.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open);
   if (!open) $('#installHelp').hidden = true;
@@ -1811,7 +2001,7 @@ els.sndBtn.addEventListener('click', () => {
 });
 try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
-document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (pickerDim) setPicker(null); else if (viewsOpen) setViews(false); else if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else stepBack(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (searchOpen) setSearch(false); else if (pickerDim) setPicker(null); else if (viewsOpen) setViews(false); else if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else stepBack(); } });
 /* Turning the device (or crossing into the other layout) re-flows everything. Positions, sizes and the deck's
    scale already glide to their new values; the containers that CSS moves at once fade back in over the top. */
 let wasSide = sideMQ.matches, wasTall = innerHeight > innerWidth;
@@ -1824,7 +2014,7 @@ function onViewportChange(){
   const flipped = wasSide !== sideMQ.matches || wasTall !== (innerHeight > innerWidth);
   wasSide = sideMQ.matches; wasTall = innerHeight > innerWidth;
   if (flipped){
-    state.openOrb = null; setMenu(false); if (viewsOpen) setViews(false); setPicker(null);
+    state.openOrb = null; setMenu(false); if (viewsOpen) setViews(false); setPicker(null); setSearch(false);
     if (!calmMQ.matches){ const page = $('.page'); page.classList.add('reflow'); setTimeout(() => page.classList.remove('reflow'), 140); }
   }
   relayout(true);
