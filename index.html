@@ -433,6 +433,7 @@ tr:last-child td{border-bottom:0}
         <div class="mhelp" id="installHelp" hidden></div>
         <button class="mi" id="layoutBtn" role="menuitem">Cards: Curved</button>
         <button class="mi" id="sizeBtn" role="menuitem">Size: Normal</button>
+        <button class="mi" id="stripBtn" role="menuitemcheckbox">Thumb strip: On</button>
         <button class="mi" id="themeBtn" role="menuitem">Theme: Auto</button>
         <button class="mi" id="hapBtn" role="menuitemcheckbox" aria-checked="true" hidden>Haptics on</button>
         <button class="mi" id="sndBtn" role="menuitem">Sound: Off</button>
@@ -537,7 +538,11 @@ const darkMQ = matchMedia('(prefers-color-scheme: dark)');
 let theme = 'auto';   /* auto | light | dark */
 /* card layout: curved (a hand of cards) or flat (a straight row). A device preference, like the theme. */
 const LAYOUTS = {curved:'Curved', flat:'Flat', grid:'Grid'};
-let cardLayout = 'curved';
+/* Phones and iPads (a coarse primary pointer) start Flat with the thumb strip; desktops start on Grid, where the
+   mouse and wheel do the work, without it. Either can be changed in the menu and is then remembered. */
+const touchDevice = matchMedia('(pointer: coarse)').matches;
+const DEFAULT_LAYOUT = touchDevice ? 'flat' : 'grid';
+let cardLayout = DEFAULT_LAYOUT, showStrip = touchDevice;
 /* card size scales every layout: compact shows more cards at once, large fewer and bigger */
 const SIZES = {normal:['Normal', 1], large:['Large', 1.25], compact:['Compact', .8]};
 let cardSize = 'normal';
@@ -1168,7 +1173,7 @@ function renderDecks(){
   const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
   const W = els.stage.clientWidth, narrow = W < 620, K = .5;
   /* the thumb strip is under every deck, in every layout */
-  scrubOn = (drilled ? gs[si].tickets.length : n) > 0;
+  scrubOn = showStrip && (drilled ? gs[si].tickets.length : n) > 0;
   /* the scale the height allows, then the canvas width that scale would give */
   const roughH = 60 + CARD_H + 44 + (drilled ? 22 + CARD_H * K + 16 : 0), f = sizeF(), grid = cardLayout === 'grid';
   const target = W / Math.max(.9 * f, Math.min(MAX_S * f, roomBelow(drilled) * f / roughH));
@@ -1938,11 +1943,12 @@ function writeURL(){
   if (state.table) q.set('table', '1');
   if (state.drilled !== null) q.set('open', state.drilled);
   if (state.selTicket) q.set('ticket', state.selTicket.id);
+  q.delete('cards'); q.delete('size');   /* how cards look is the device's choice, not part of a link */
   try { history.replaceState(null, '', '#' + q.toString()); } catch (e) {}
 }
 function readParams(q){
   const L = q.get('cards'), Z = q.get('size');
-  if (LAYOUTS[L] && L !== cardLayout){ cardLayout = L; store.set('fd-layout', L); layoutBtn.textContent = 'Cards: ' + LAYOUTS[L]; }
+  if (LAYOUTS[L] && L !== cardLayout){ cardLayout = L; store.set('fd-cards', L); layoutBtn.textContent = 'Cards: ' + LAYOUTS[L]; }
   if (SIZES[Z] && Z !== cardSize){ cardSize = Z; store.set('fd-size', Z); sizeBtn.textContent = 'Size: ' + SIZES[Z][0]; }
   const d = /^([0-6])-([0-6])$/.exec(q.get('days') || '');
   if (d && +d[1] <= +d[2]) setDays(+d[1], +d[2]);
@@ -1958,7 +1964,11 @@ function readParams(q){
   state.selTicket = TICKETS.find(t => String(t.id) === q.get('ticket')) || null;
 }
 /* a link wins; with no link the page opens on Home */
-function readURL(){ readParams(new URLSearchParams(location.hash.length > 1 ? location.hash.slice(1) : homeView())); }
+function readURL(){
+  const q = new URLSearchParams(location.hash.length > 1 ? location.hash.slice(1) : homeView());
+  q.delete('cards'); q.delete('size');
+  readParams(q);
+}
 addEventListener('hashchange', () => { closeChild(); readURL(); render(); });
 const menuBtn = $('#menuBtn'), menu = $('#menu');
 function setMenu(open){
@@ -2046,7 +2056,7 @@ const layoutBtn = $('#layoutBtn');
 function applyLayoutLabel(){ layoutBtn.textContent = 'Cards: ' + LAYOUTS[cardLayout]; }
 function setLayout(next){
   if (next === cardLayout) return;
-  morph(() => { cardLayout = next; store.set('fd-layout', next); applyLayoutLabel(); });
+  morph(() => { cardLayout = next; store.set('fd-cards', next); applyLayoutLabel(); });
 }
 /* apply a change that moves every card, then glide each one from where it was */
 function morph(change){
@@ -2159,7 +2169,12 @@ if (window.ResizeObserver){
 }
 darkMQ.addEventListener('change', () => { applyTheme(); render(); });
 theme = ['light','dark'].includes(store.get('fd-theme', 'auto')) ? store.get('fd-theme', 'auto') : 'auto';
-cardLayout = LAYOUTS[store.get('fd-layout', 'curved')] ? store.get('fd-layout', 'curved') : 'curved'; applyLayoutLabel();
+cardLayout = LAYOUTS[store.get('fd-cards', DEFAULT_LAYOUT)] ? store.get('fd-cards', DEFAULT_LAYOUT) : DEFAULT_LAYOUT; applyLayoutLabel();
+showStrip = store.get('fd-strip', touchDevice) !== false;
+const stripBtn = $('#stripBtn');
+function applyStripLabel(){ stripBtn.textContent = 'Thumb strip: ' + (showStrip ? 'On' : 'Off'); stripBtn.classList.toggle('live', showStrip); stripBtn.setAttribute('aria-checked', showStrip); }
+applyStripLabel();
+stripBtn.addEventListener('click', () => { showStrip = !showStrip; store.set('fd-strip', showStrip); applyStripLabel(); tick(); render(); });
 cardSize = SIZES[store.get('fd-size', 'normal')] ? store.get('fd-size', 'normal') : 'normal'; applySizeLabel();
 applyTheme(); readURL(); render();
 })();
