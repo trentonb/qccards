@@ -412,6 +412,7 @@ tr:last-child td{border-bottom:0}
         <button class="mi" id="layoutBtn" role="menuitem">Cards: Curved</button>
         <button class="mi" id="sizeBtn" role="menuitem">Size: Normal</button>
         <button class="mi" id="themeBtn" role="menuitem">Theme: Auto</button>
+        <button class="mi" id="hapBtn" role="menuitemcheckbox" aria-checked="true" hidden>Haptics on</button>
         <button class="mi" id="sndBtn" role="menuitemcheckbox" aria-checked="false">Sound off</button>
       </div>
     </div>
@@ -758,9 +759,28 @@ function glassDrag(track, lens, cells, o){
 }
 /* one tick of feedback: a buzz where the device supports it, plus the optional click */
 let actx = null;
+/* Haptics. Android and other browsers with the Vibration API get a short buzz. Safari on iPhone has no such
+   API, but since iOS 18 flipping a switch-style checkbox plays the system's selection tap, so a hidden switch
+   is flipped instead. Both only work inside a real touch, and iPads have no haptic motor at all. */
+const touchUI = matchMedia('(hover: none) and (pointer: coarse)').matches;
+let haptics = true, lastBuzz = 0;
+const hapSwitch = (() => {
+  const l = document.createElement('label'), i = document.createElement('input');
+  i.type = 'checkbox'; i.setAttribute('switch', ''); i.tabIndex = -1;
+  l.setAttribute('aria-hidden', 'true'); l.style.cssText = 'position:fixed;left:-200px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+  l.appendChild(i); document.body.appendChild(l);
+  l.addEventListener('click', e => e.stopPropagation());   /* no menu or sheet should think the page was tapped */
+  return l;
+})();
+function buzz(){
+  if (!haptics || !touchUI) return;
+  const now = performance.now(); if (now - lastBuzz < 28) return;   /* a fast sweep reads as a ripple, not a hum */
+  lastBuzz = now;
+  if (navigator.vibrate){ if (!navigator.userActivation || navigator.userActivation.hasBeenActive) navigator.vibrate(8); }
+  else { const f = document.activeElement; hapSwitch.click(); if (f && f !== document.body && f.focus) f.focus({preventScroll:true}); }
+}
 function tick(){
-  /* browsers refuse to buzz before the first real tap */
-  if (navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(5);
+  buzz();
   if (!state.sound) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
@@ -2000,6 +2020,12 @@ els.sndBtn.addEventListener('click', () => {
   tick(); render();
 });
 try { state.sound = localStorage.getItem('fd-sound') === '1'; } catch (e) {}
+/* the haptics switch only shows on touch devices; it is on unless someone turns it off */
+const hapBtn = $('#hapBtn');
+haptics = store.get('fd-haptics', true) !== false; hapBtn.hidden = !touchUI;
+function applyHapLabel(){ hapBtn.textContent = haptics ? 'Haptics on' : 'Haptics off'; hapBtn.classList.toggle('live', haptics); hapBtn.setAttribute('aria-checked', haptics); }
+applyHapLabel();
+hapBtn.addEventListener('click', () => { haptics = !haptics; store.set('fd-haptics', haptics); applyHapLabel(); buzz(); });
 if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (searchOpen) setSearch(false); else if (pickerDim) setPicker(null); else if (viewsOpen) setViews(false); else if (menu.classList.contains('open')) setMenu(false); else if (state.openOrb){ state.openOrb = null; renderOrbs(true); } else stepBack(); } });
 /* Turning the device (or crossing into the other layout) re-flows everything. Positions, sizes and the deck's
