@@ -429,6 +429,7 @@ tr:last-child td{border-bottom:0}
         <button class="mi" id="layoutBtn" role="menuitem">Cards: Curved</button>
         <button class="mi" id="sizeBtn" role="menuitem">Size: Normal</button>
         <button class="mi" id="stripBtn" role="menuitemcheckbox">Thumb strip: On</button>
+        <button class="mi" id="trayBtn" role="menuitemcheckbox">Previous tier: Shown</button>
         <button class="mi" id="themeBtn" role="menuitem">Theme: Auto</button>
         <button class="mi" id="hapBtn" role="menuitemcheckbox" aria-checked="true" hidden>Haptics on</button>
         <button class="mi" id="sndBtn" role="menuitem">Sound: Off</button>
@@ -538,6 +539,8 @@ const LAYOUTS = {curved:'Curved', flat:'Flat', grid:'Grid'};
 const touchDevice = matchMedia('(pointer: coarse)').matches;
 const DEFAULT_LAYOUT = touchDevice ? 'flat' : 'grid';
 let cardLayout = DEFAULT_LAYOUT, showStrip = touchDevice;
+/* the tray: the level above, shrunk under the open level. Hiding it gives the open level the whole stage. */
+let showTray = true;
 /* card size scales every layout: compact shows more cards at once, large fewer and bigger */
 const SIZES = {normal:['Normal', 1], large:['Large', 1.25], compact:['Compact', .8]};
 let cardSize = 'normal';
@@ -1131,11 +1134,11 @@ let groupsNow = [], stageDW = 860, stageH = 320, stageCapH = 320, stageS = 1;
 /* target = the canvas width at which the deck would exactly fill the height on offer. Few cards: they simply
    fit. More cards: they overlap (by about an eighth at most) so they can be drawn larger; past that they keep a
    readable spacing and run off the sides, where the deck spins. */
-function arcFor(n, w, narrow, target, W){
+function arcFor(n, w, narrow, target, W, cap){
   /* base = the widest canvas a busy deck may use; on tablets it is held to keep cards at 1.1x or more */
   /* flat uses the very same arc with its pivot pushed so far down that the row is straight; every angle-based
      calculation (hit testing, spinning, focus) keeps working unchanged */
-  const R = cardLayout === 'flat' ? 40000 : narrow ? 800 : 1300, base = (narrow ? 450 : Math.max(560, Math.min(860, W / 1.1))) / sizeF();
+  const R = cardLayout === 'flat' ? 40000 : narrow ? 800 : 1300, base = Math.min(cap || Infinity, (narrow ? 450 : Math.max(560, Math.min(860, W / 1.1))) / sizeF());
   /* a straight row has no tilt to peek past, so its cards never overlap: they sit side by side and a busy row spins */
   const minPitch = cardLayout === 'flat' ? w + 8 : state.show === 'all' ? (narrow ? 64 : 76) : w - 2;   /* a value must stay readable; one large value needs the whole card */
   const span = pitch => (n - 1) * pitch + w * 1.2 + 48;
@@ -1198,23 +1201,26 @@ function renderDecks(){
   const childGroups = drilled && lots && !inLot;   /* the arc holds lot cards rather than loads */
   const ts = drilled && !childGroups ? (inLot ? lots[li] : gs[gi]).tickets.slice().sort(loadCmp) : [];
   const kids = childGroups ? lots : ts;
+  const tray = drilled && showTray;   /* the level above, shown shrunk under the open one */
   const W = els.stage.clientWidth, narrow = W < 620, K = .5;
   /* the thumb strip is under every deck, in every layout */
   scrubOn = showStrip && (drilled ? kids.length : n) > 0;
   /* the scale the height allows, then the canvas width that scale would give */
-  const roughH = 60 + CARD_H + 44 + (drilled ? 22 + CARD_H * K + 16 : 0), f = sizeF(), grid = cardLayout === 'grid';
+  const roughH = 60 + CARD_H + 44 + (tray ? 22 + CARD_H * K + 16 : 0), f = sizeF(), grid = cardLayout === 'grid';
   const target = W / Math.max(.9 * f, Math.min(MAX_S * f, roomBelow(drilled) * f / roughH));
   /* grid: a fixed, comfortable card scale; the columns are whatever fits across at that scale */
   const gridDW = W / ((narrow ? .78 : 1.15) * f);
   const gp = grid ? gridFor(n, 120, drilled ? K : 1, gridDW) : arcFor(n, 120, narrow, drilled ? target / K : target, drilled ? W / K : W);
   const kw = childGroups ? 120 : 114;
-  const gc = grid ? gridFor(kids.length, kw, 1, gridDW) : arcFor(kids.length, kw, narrow, target, W);
+  /* with the previous tier hidden, a busy level is drawn as large as the height allows and spins for the rest */
+  const focusCap = drilled && !tray ? W / Math.max(1.1, Math.min(MAX_S * f, roomBelow(true) * f / roughH)) : 0;
+  const gc = grid ? gridFor(kids.length, kw, 1, gridDW / (drilled && !tray ? 1.2 : 1)) : arcFor(kids.length, kw, narrow, target, W, focusCap);
   /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
   if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
   /* 60px of headroom lets the focused card lift and swell; an open ticket needs room above the arc too */
   gc.k = 1; gp.k = drilled ? K : 1;
-  stageDW = grid ? gridDW : drilled ? Math.max(gc.dw, gp.dw * K) : gp.dw;
-  stageCapH = 60 + CARD_H + (drilled ? gc.drop + 22 + CARD_H * K : 0) + gp.drop * gp.k + 14;
+  stageDW = grid ? (drilled && !tray ? gridDW / 1.2 : gridDW) : !drilled ? gp.dw : tray ? Math.max(gc.dw, gp.dw * K) : gc.dw;
+  stageCapH = 60 + CARD_H + (drilled ? gc.drop : 0) + (tray ? 22 + CARD_H * K : 0) + (!drilled || tray ? gp.drop * gp.k : 0) + 14;
   stageS = scaleFor();
   /* the ticket pop-up is real pixels; its height becomes headroom above the arc, in design pixels */
   const popPx = fillPop(drilled && !childGroups ? state.selTicket : null, drilled ? (inLot ? lots[li] : gs[gi]) : null, narrow);
@@ -1231,7 +1237,7 @@ function renderDecks(){
   [els.deckP, els.deckC].forEach(d => d.style.setProperty('--R', gp.R + 'px'));
 
   /* a lot card on the tray at the deepest level is keyed apart from the same lot on the arc one level up */
-  syncDeck(els.deckP, top.map((g, i) => {
+  syncDeck(els.deckP, drilled && !tray ? [] : top.map((g, i) => {
     const isLot = inLot;
     return {key:(isLot ? 'lot:' : '') + g.key, cls:'group', angle:gp.grid ? gp.pos[i].a : gp.a0 + i * gp.step + gp.off, gy:gp.grid ? gp.pos[i].gy : 0, z:i + 1, up:drilled && i === si, dim:drilled && i !== si,
       html:groupCardHtml(g), title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:groupLens(g),
@@ -1243,7 +1249,8 @@ function renderDecks(){
   if (drilled){
     /* the loads rise out of their group's card in the tray */
     const aSel = (gp.grid ? gp.pos[si].a : gp.a0 + si * gp.step + gp.off) * RAD, gySel = gp.grid ? gp.pos[si].gy : 0;
-    const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + (gySel + gp.R * (1 - Math.cos(aSel))) * K - CARD_H * K * .5};
+    /* with the tray hidden the cards rise from just below the stage instead of from their tray card */
+    const from = els.deckC._from = tray ? {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + (gySel + gp.R * (1 - Math.cos(aSel))) * K - CARD_H * K * .5} : {x:0, y:gc.drop + 150};
     if (childGroups) syncDeck(els.deckC, lots.map((g, i) => ({
       key:'lot:' + g.key, cls:'group', angle:gc.grid ? gc.pos[i].a : gc.a0 + i * gc.step + gc.off, gy:gc.grid ? gc.pos[i].gy : 0, z:i + 1,
       html:groupCardHtml(g), title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:groupLens(g), act:() => openLot(g.key)
@@ -2212,6 +2219,11 @@ const stripBtn = $('#stripBtn');
 function applyStripLabel(){ stripBtn.textContent = 'Thumb strip: ' + (showStrip ? 'On' : 'Off'); stripBtn.classList.toggle('live', showStrip); stripBtn.setAttribute('aria-checked', showStrip); }
 applyStripLabel();
 stripBtn.addEventListener('click', () => { showStrip = !showStrip; store.set('fd-strip', showStrip); applyStripLabel(); tick(); render(); });
+showTray = store.get('fd-tray', true) !== false;
+const trayBtn = $('#trayBtn');
+function applyTrayLabel(){ trayBtn.textContent = 'Previous tier: ' + (showTray ? 'Shown' : 'Hidden'); trayBtn.classList.toggle('live', !showTray); trayBtn.setAttribute('aria-checked', showTray); }
+applyTrayLabel();
+trayBtn.addEventListener('click', () => morph(() => { showTray = !showTray; store.set('fd-tray', showTray); applyTrayLabel(); }));
 cardSize = SIZES[store.get('fd-size', 'normal')] ? store.get('fd-size', 'normal') : 'normal'; applySizeLabel();
 applyTheme(); readURL(); render();
 })();
