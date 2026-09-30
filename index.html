@@ -58,7 +58,7 @@
 :root[data-theme="dark"]{color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
-html,body{overflow-x:clip}   /* the pinned bar's backdrop runs edge to edge without adding a sideways scroll */
+html,body{overflow-x:clip}   /* the floating dock's backdrop runs edge to edge without adding a sideways scroll */
 /* The flat page colour sits on <html>; the corner glows are a fixed layer above it. In a Safari tab the area
    around the clock and Dynamic Island is Safari's own bar, tinted with this flat colour, so the glows fade out
    over the top edge to meet it without a seam. Installed as an app the page draws under the island itself, so
@@ -68,7 +68,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 @media (display-mode: standalone){body::before{-webkit-mask-image:none;mask-image:none}}
 body{background:transparent;min-height:100vh;color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-text-size-adjust:100%}
 /* installed as an app the page runs under the status bar, so keep clear of the notch / Dynamic Island */
-.page{max-width:2000px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.page{max-width:2000px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 button,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -177,13 +177,7 @@ button,select{font:inherit;color:inherit}
 
 /* layout: filters left, fan right on tablets and up */
 .layout{margin-top:14px;transition:opacity .5s ease}
-.top{transition:opacity .5s ease,transform .35s cubic-bezier(.3,.8,.2,1)}
-/* The bar stays pinned to the top of the screen. Once the page has scrolled it gets a glass backdrop; while
-   someone scrolls down by hand it tucks away, and any scroll back up (or reaching the top) brings it back. */
-.top{position:sticky;top:0;z-index:50;padding-top:env(safe-area-inset-top)}
-.top::before{content:"";position:absolute;z-index:-1;top:-24px;bottom:-10px;left:-100vw;right:-100vw;background:color-mix(in srgb,var(--bg) 80%,transparent);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);border-bottom:1px solid var(--line);opacity:0;transition:opacity .25s}
-.top.stuck::before{opacity:1}
-.top.tuck{transform:translateY(calc(-100% - 12px))}
+.top{transition:opacity .5s ease}
 .page.reflow .layout,.page.reflow .top{opacity:0;transition:none}
 .page.snap .blade,.page.snap .deck,.page.snap .stage,.page.snap .stage-in,.page.snap .stage-wrap{transition:none!important}
 .btn.live{color:var(--bg);background:var(--ink);border-color:var(--ink)}
@@ -370,7 +364,7 @@ button.th:hover,button.th.on{color:var(--ink)}
 thead th{position:sticky;top:0;background:var(--surface);z-index:1}
 tr:last-child td{border-bottom:0}
 @media (max-width:560px){
-  .page{padding-top:14px}
+  .page{padding-top:calc(14px + env(safe-area-inset-top))}
   .seg button{padding:6px 11px}
   .reset{width:38px;height:38px}
   .top-l{gap:6px}
@@ -2118,21 +2112,8 @@ function dockStuck(){
   const d = $('#dock'), r = d.getBoundingClientRect(), st = els.stage.getBoundingClientRect();
   d.classList.toggle('stuck', r.bottom >= innerHeight - 1 && st.bottom > r.top + 4);
 }
-/* pinned bar: glass once scrolled; tucks only for a scroll the person made (not for the page moving itself to
-   show cards or a ticket), and never while a menu or sheet hangs from it */
-(() => {
-  const bar = $('.top'); let anchor = scrollY, userT = -1e4;
-  ['wheel', 'touchmove', 'keydown'].forEach(t => addEventListener(t, () => { userT = performance.now(); }, {passive:true}));
-  addEventListener('scroll', () => {
-    const y = scrollY, byHand = performance.now() - userT < 300;
-    bar.classList.toggle('stuck', y > 4);
-    dockStuck();
-    const open = menu.classList.contains('open') || viewsOpen || searchOpen || !!pickerDim;
-    if (y < bar.offsetHeight + 24 || open){ bar.classList.remove('tuck'); anchor = y; return; }
-    if (y > anchor + 18){ if (byHand) bar.classList.add('tuck'); anchor = y; }
-    else if (y < anchor - 18){ bar.classList.remove('tuck'); anchor = y; }
-  }, {passive:true});
-})();
+/* the dock's frosted backing follows the page as it scrolls */
+addEventListener('scroll', dockStuck, {passive:true});
 /* Turning the device (or crossing into the other layout) re-flows everything. Positions, sizes and the deck's
    scale already glide to their new values; the containers that CSS moves at once fade back in over the top. */
 let wasSide = sideMQ.matches, wasTall = innerHeight > innerWidth;
