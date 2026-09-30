@@ -1,6 +1,6 @@
 # QC Cards
 
-A touch-first way to look at apple receiving QC. Each load ticket's pressure, starch and soluble solids are shown as a fan of cards: groups first (variety, grower, lot, source or day), then the loads inside a group, then a single ticket with every fruit sampled.
+A touch-first way to look at apple receiving QC. Each load ticket's pressure, starch and soluble solids are shown as a fan of cards: groups first (variety, grower, lot, source or day), then the lots inside a variety, grower or source, then the loads inside a lot, then a single ticket with every fruit sampled.
 
 Built for iPad first, and works on phones and desktops. It is one `index.html` with no build step and no dependencies.
 

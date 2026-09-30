@@ -613,7 +613,7 @@ let TICKETS = buildMockTickets().map(derive);
 const state = {
   days: new Set([0]), groupBy: 'variety', sort: 'default',
   filters: {source:new Set(), grower:new Set(), variety:new Set()},
-  drilled: null, selTicket: null, openOrb: null,
+  drilled: null, lot: null, selTicket: null, openOrb: null,
   sound: 'off', show: 'all', table: false
 };
 const $ = s => document.querySelector(s);
@@ -647,19 +647,33 @@ function trendOf(ts){
 }
 /* loads: received date and time by default (oldest left), ticket number for Name, else the chosen measure */
 const loadCmp = (a, b) => state.sort === 'default' ? a.ts - b.ts : state.sort === 'name' ? a.id - b.id : a[state.sort] - b[state.sort];
-function computeGroups(){
+/* tickets into group cards by one field; sub is the second line on a lot card */
+function groupBy(tickets, dim, sub){
   const m = new Map();
-  scope().forEach(t => { const k = t[state.groupBy]; (m.get(k) || m.set(k, []).get(k)).push(t); });
-  const week = state.groupBy === 'day' ? [] : scope(null, true);
+  tickets.forEach(t => { const k = t[dim]; (m.get(k) || m.set(k, []).get(k)).push(t); });
+  const week = dim === 'day' ? [] : scope(null, true);
   const gs = [...m].map(([key, ts]) => Object.assign(summarize(ts), {key, tickets: ts,
-    label: state.groupBy === 'lot' ? 'Lot ' + key : key, sub: state.groupBy === 'lot' ? ts[0].grower : '',
-    trend: trendOf(week.filter(t => t[state.groupBy] === key)),
+    label: dim === 'lot' ? 'Lot ' + key : key, sub: dim === 'lot' ? sub(ts[0]) : '',
+    trend: trendOf(week.filter(t => t[dim] === key)),
     last: Math.max(...ts.map(t => t.ts))}));
   /* default: by each group's most recent load, oldest on the left, newest on the right */
-  gs.sort((a,b) => state.sort === 'default' || (state.sort === 'name' && state.groupBy === 'day') ? a.last - b.last
-    : state.sort === 'name' ? a.key.localeCompare(b.key, undefined, {numeric:true})
+  gs.sort((a,b) => state.sort === 'default' || (state.sort === 'name' && dim === 'day') ? a.last - b.last
+    : state.sort === 'name' ? String(a.key).localeCompare(String(b.key), undefined, {numeric:true})
     : a[state.sort] - b[state.sort]);
   return gs;
+}
+function computeGroups(){
+  const gs = groupBy(scope(), state.groupBy, t => t.grower);
+  if (NESTS[state.groupBy]) gs.forEach(g => { g.lotN = new Set(g.tickets.map(t => t.lot)).size; if (g.lotN < 2) g.lotN = 0; });
+  return gs;
+}
+/* A variety, grower or source opens into its lots, and a lot into its loads: three levels. A group with only one
+   lot skips the middle level and opens straight into its loads. */
+const NESTS = {variety:1, grower:1, source:1};
+function lotsOf(g){
+  if (!g || !NESTS[state.groupBy]) return null;
+  const lots = groupBy(g.tickets, 'lot', t => state.groupBy === 'grower' ? t.variety : t.grower);
+  return lots.length > 1 ? lots : null;
 }
 
 /* ------------------------------------------------------------------- chips */
@@ -931,7 +945,7 @@ function orbValue(ob){
   return {val:f.size === 0 ? 'All' : f.size === 1 ? [...f][0] : f.size + ' on', on:f.size > 0};
 }
 function pickOption(ob, cur){
-  if (ob.kind === 'group'){ if (state.groupBy !== cur.v){ state.groupBy = cur.v; closeChild(); state.drilled = null; state.selTicket = null; } }
+  if (ob.kind === 'group'){ if (state.groupBy !== cur.v){ state.groupBy = cur.v; closeChild(); state.drilled = null; state.lot = null; state.selTicket = null; } }
   else if (ob.kind === 'sort') state.sort = cur.v;
   else {
     const f = state.filters[ob.k];
@@ -1095,12 +1109,18 @@ function closeChild(){
 }
 function drill(key){
   if (state.drilled === key){ back(); return; }
-  closeChild(); state.drilled = key; state.selTicket = null; render();
+  closeChild(); state.drilled = key; state.lot = null; state.selTicket = null; render();
   setTimeout(() => els.stage.scrollIntoView({block:'nearest', behavior:'smooth'}), 720);
 }
 function back(){
   if (state.drilled === null) return;
-  closeChild(); state.drilled = null; state.selTicket = null; render();
+  closeChild(); state.drilled = null; state.lot = null; state.selTicket = null; render();
+}
+/* open a lot inside the open group; the lot already open closes back to the group's lots */
+function openLot(key){
+  closeChild();
+  state.lot = state.lot === key ? null : key; state.selTicket = null; tick(); render();
+  setTimeout(() => els.stage.scrollIntoView({block:'nearest', behavior:'smooth'}), 720);
 }
 const tip = o => `pressure ${o.p.toFixed(1)} lb, starch ${o.st.toFixed(1)}, soluble solids ${o.ss.toFixed(1)} °Bx`;
 
@@ -1163,20 +1183,31 @@ function spinTo(deck, off){
   if (scrubOn && !hot) renderScrub(false);
 }
 function renderDecks(){
-  const gs = groupsNow = computeGroups(), n = gs.length;
-  if (state.drilled !== null && !gs.some(g => g.key === state.drilled)){ closeChild(); state.drilled = null; state.selTicket = null; }
-  const si = gs.findIndex(g => g.key === state.drilled), drilled = si >= 0;
+  const gs = groupsNow = computeGroups();
+  if (state.drilled !== null && !gs.some(g => g.key === state.drilled)){ closeChild(); state.drilled = null; state.lot = null; state.selTicket = null; }
+  const gi = gs.findIndex(g => g.key === state.drilled), drilled = gi >= 0;
+  /* Levels. Groups on the arc; or a group open: its lots on the arc (or its loads, if it has one lot) with the
+     groups in the tray; or a lot open: its loads on the arc with that group's lots in the tray. */
+  const lots = drilled ? lotsOf(gs[gi]) : null;
+  let li = lots ? lots.findIndex(l => l.key === state.lot) : -1;
+  if (li < 0) state.lot = null;
+  const inLot = li >= 0;
+  lotsNow = lots; lotNow = inLot ? lots[li] : null;
+  const top = inLot ? lots : gs, si = inLot ? li : gi, n = top.length;
+  const childGroups = drilled && lots && !inLot;   /* the arc holds lot cards rather than loads */
+  const ts = drilled && !childGroups ? (inLot ? lots[li] : gs[gi]).tickets.slice().sort(loadCmp) : [];
+  const kids = childGroups ? lots : ts;
   const W = els.stage.clientWidth, narrow = W < 620, K = .5;
   /* the thumb strip is under every deck, in every layout */
-  scrubOn = showStrip && (drilled ? gs[si].tickets.length : n) > 0;
+  scrubOn = showStrip && (drilled ? kids.length : n) > 0;
   /* the scale the height allows, then the canvas width that scale would give */
   const roughH = 60 + CARD_H + 44 + (drilled ? 22 + CARD_H * K + 16 : 0), f = sizeF(), grid = cardLayout === 'grid';
   const target = W / Math.max(.9 * f, Math.min(MAX_S * f, roomBelow(drilled) * f / roughH));
-  const ts = drilled ? gs[si].tickets.slice().sort(loadCmp) : [];
   /* grid: a fixed, comfortable card scale; the columns are whatever fits across at that scale */
   const gridDW = W / ((narrow ? .78 : 1.15) * f);
   const gp = grid ? gridFor(n, 120, drilled ? K : 1, gridDW) : arcFor(n, 120, narrow, drilled ? target / K : target, drilled ? W / K : W);
-  const gc = grid ? gridFor(ts.length, 114, 1, gridDW) : arcFor(ts.length, 114, narrow, target, W);
+  const kw = childGroups ? 120 : 114;
+  const gc = grid ? gridFor(kids.length, kw, 1, gridDW) : arcFor(kids.length, kw, narrow, target, W);
   /* overview: one arc. Opened: the loads take the arc and the groups drop into a half-size tray below */
   if (state.selTicket && !ts.includes(state.selTicket)) state.selTicket = null;
   /* 60px of headroom lets the focused card lift and swell; an open ticket needs room above the arc too */
@@ -1185,24 +1216,25 @@ function renderDecks(){
   stageCapH = 60 + CARD_H + (drilled ? gc.drop + 22 + CARD_H * K : 0) + gp.drop * gp.k + 14;
   stageS = scaleFor();
   /* the ticket pop-up is real pixels; its height becomes headroom above the arc, in design pixels */
-  const popPx = fillPop(drilled ? state.selTicket : null, drilled ? gs[si] : null, narrow);
+  const popPx = fillPop(drilled && !childGroups ? state.selTicket : null, drilled ? (inLot ? lots[li] : gs[gi]) : null, narrow);
   /* in a grid a ticket below the first row opens over the rows above it, so only the first row needs headroom */
   const selRow = grid && state.selTicket ? Math.floor(ts.indexOf(state.selTicket) / gc.cols) : 0;
   const extra = popPx && selRow === 0 ? popPx / stageS + 10 : 0, TOP = 60 + extra;
   gc.y = TOP + CARD_H;
   gp.y = drilled ? gc.y + gc.drop + 22 + CARD_H * K : TOP + CARD_H;
   stageH = stageCapH + extra;
-  carryOff(els.deckP, gp, state.groupBy, drilled);
-  if (drilled) carryOff(els.deckC, gc, state.groupBy + '|' + state.drilled, false);
+  carryOff(els.deckP, gp, state.groupBy + (inLot ? '|lots|' + state.drilled : ''), drilled);
+  if (drilled) carryOff(els.deckC, gc, state.groupBy + '|' + state.drilled + '|' + (state.lot || ''), false);
   els.deckP._geo = gp; els.deckC._geo = drilled ? gc : null;
   els.stage.classList.toggle('ovf', (drilled ? gc : gp).maxOff > 0);
   [els.deckP, els.deckC].forEach(d => d.style.setProperty('--R', gp.R + 'px'));
 
-  syncDeck(els.deckP, gs.map((g, i) => {
-    return {key:g.key, cls:'group', angle:gp.grid ? gp.pos[i].a : gp.a0 + i * gp.step + gp.off, gy:gp.grid ? gp.pos[i].gy : 0, z:i + 1, up:drilled && i === si, dim:drilled && i !== si,
-      html:`<span class="c-name">${g.label}</span>${g.sub ? `<span class="c-sub">${g.sub}</span>` : ''}<span class="c-sub">${g.n} load${g.n === 1 ? '' : 's'}</span>${groupChips(g)}`,
-      title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:{name:g.label, meta:`${g.sub ? g.sub + ' · ' : ''}${g.n} load${g.n === 1 ? '' : 's'}`, o:g},
-      act:() => drill(g.key)};
+  /* a lot card on the tray at the deepest level is keyed apart from the same lot on the arc one level up */
+  syncDeck(els.deckP, top.map((g, i) => {
+    const isLot = inLot;
+    return {key:(isLot ? 'lot:' : '') + g.key, cls:'group', angle:gp.grid ? gp.pos[i].a : gp.a0 + i * gp.step + gp.off, gy:gp.grid ? gp.pos[i].gy : 0, z:i + 1, up:drilled && i === si, dim:drilled && i !== si,
+      html:groupCardHtml(g), title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:groupLens(g),
+      act:() => isLot ? openLot(g.key) : drill(g.key)};
   }), null);
   els.deckP.style.transform = `translate(0,${gp.y.toFixed(1)}px) scale(${gp.k})`;
   els.deckC.style.transform = `translate(0,${gc.y}px)`;
@@ -1211,7 +1243,11 @@ function renderDecks(){
     /* the loads rise out of their group's card in the tray */
     const aSel = (gp.grid ? gp.pos[si].a : gp.a0 + si * gp.step + gp.off) * RAD, gySel = gp.grid ? gp.pos[si].gy : 0;
     const from = els.deckC._from = {x:gp.R * K * Math.sin(aSel), y:gp.y - gc.y + (gySel + gp.R * (1 - Math.cos(aSel))) * K - CARD_H * K * .5};
-    syncDeck(els.deckC, ts.map((t, i) => {
+    if (childGroups) syncDeck(els.deckC, lots.map((g, i) => ({
+      key:'lot:' + g.key, cls:'group', angle:gc.grid ? gc.pos[i].a : gc.a0 + i * gc.step + gc.off, gy:gc.grid ? gc.pos[i].gy : 0, z:i + 1,
+      html:groupCardHtml(g), title:`${g.label}: ${g.n} loads, ${tip(g)}`, lens:groupLens(g), act:() => openLot(g.key)
+    })), from);
+    else syncDeck(els.deckC, ts.map((t, i) => {
       const who = state.groupBy === 'grower' ? t.variety : t.grower;
       return {key:t.id, cls:'load', angle:gc.grid ? gc.pos[i].a : gc.a0 + i * gc.step + gc.off, gy:gc.grid ? gc.pos[i].gy : 0, z:t === state.selTicket ? 100 : i + 1, sel:t === state.selTicket,
         html:`<span class="c-top"><span class="c-id">${t.id}</span><span class="c-sub">${state.days.size === 1 ? t.timeShort : t.dayShort}</span></span><span class="c-sub">Lot ${t.lot} · ${VCODE[t.variety]}</span><span class="c-sub">${who}</span>${loadChips(t)}`,
@@ -1226,6 +1262,9 @@ function renderDecks(){
   placePop(); renderDown();
   fitStage(); renderScrub(true);
 }
+const groupCardHtml = g => `<span class="c-name">${g.label}</span>${g.sub ? `<span class="c-sub">${g.sub}</span>` : ''}<span class="c-sub">${g.n} load${g.n === 1 ? '' : 's'}${g.lotN ? ' · ' + g.lotN + ' lots' : ''}</span>${groupChips(g)}`;
+const groupLens = g => ({name:g.label, meta:`${g.sub ? g.sub + ' · ' : ''}${g.n} load${g.n === 1 ? '' : 's'}`, o:g});
+let lotsNow = null, lotNow = null;
 /* fewer cards means a narrower canvas, so they are drawn larger; in the side layout an open deck still fits one screen */
 function scaleFor(){
   const f = sizeF(), W = els.stage.clientWidth;
@@ -1252,8 +1291,13 @@ function renderCrumbs(){
       : `<strong>No loads</strong><span class="hint">Nothing matches this period and these filters.</span>`;
     return;
   }
-  const g = gs.find(x => x.key === state.drilled);
-  els.crumbs.innerHTML = `<button class="btn" id="backBtn">← All ${d.plural}</button><strong>${g.label}</strong><span class="hint">${g.sub ? g.sub + ' · ' : ''}${g.n} loads</span>`;
+  const g = gs.find(x => x.key === state.drilled), L = lotNow;
+  if (L){
+    els.crumbs.innerHTML = `<button class="btn" id="backBtn">← ${g.label} lots</button><strong>${L.label}</strong><span class="hint">${L.sub ? L.sub + ' · ' : ''}${L.n} load${L.n === 1 ? '' : 's'}</span>`;
+    $('#backBtn').addEventListener('click', () => openLot(state.lot));
+    return;
+  }
+  els.crumbs.innerHTML = `<button class="btn" id="backBtn">← All ${d.plural}</button><strong>${g.label}</strong><span class="hint">${g.sub ? g.sub + ' · ' : ''}${lotsNow ? lotsNow.length + ' lots · ' : ''}${g.n} loads</span>`;
   $('#backBtn').addEventListener('click', back);
 }
 
@@ -1322,12 +1366,20 @@ function stepBack(){
 /* one level down: ticket -> loads -> all groups */
 function down(){
   if (state.selTicket){ state.selTicket = null; tick(); render(); }
+  else if (state.lot !== null){ openLot(state.lot); }
   else back();
+}
+/* where one step down lands, in words */
+function downText(){
+  const g = groupsNow.find(x => x.key === state.drilled);
+  return state.selTicket ? (state.lot !== null ? 'Back to lot ' + state.lot : 'Back to loads')
+    : state.lot !== null ? 'Back to ' + (g ? g.label : '') + ' lots'
+    : state.drilled !== null ? 'All ' + DIMS[state.groupBy].plural : '';
 }
 function renderDown(){
   const on = state.drilled !== null;
   els.down.classList.toggle('on', on);
-  const txt = state.selTicket ? 'Back to loads' : 'All ' + DIMS[state.groupBy].plural;
+  const txt = downText();
   els.downLbl.textContent = txt; els.down.setAttribute('aria-label', txt); els.down.tabIndex = on ? 0 : -1;
 }
 
@@ -1584,7 +1636,7 @@ function renderScrub(rebuild){
   /* what a push would do from here: up opens the focused card, down steps back a level */
   const upTarget = () => { const d = activeDeck(), el = d._order && d._order[scrubIndex()]; return el && !el.classList.contains('sel') ? el : null; };
   const upLabel = () => { const el = upTarget(); return el ? '↑ Open ' + (el._lens ? el._lens.name : '') : ''; };
-  const downLabel = () => state.selTicket ? '↓ Back to loads' : state.drilled !== null ? '↓ All ' + DIMS[state.groupBy].plural : '';
+  const downLabel = () => state.drilled !== null ? '↓ ' + downText() : '';
   const setKy = ky => knob.style.setProperty('--ky', ky.toFixed(1) + 'px');
   sc.addEventListener('pointerdown', e => {
     e.stopPropagation(); if (e.button) return;
@@ -1758,8 +1810,8 @@ function jumpTo(x){
   const r = dayRange(), idx = ts.map(t => 6 - t.daysAgo);
   if (!idx.some(i => i >= r.i0 && i <= r.i1)){ const lo = Math.min(...idx); setDays(Math.min(lo, r.i0), 6); }
   for (const k in state.filters){ const f = state.filters[k]; if (f.size && !ts.some(t => f.has(t[k]))) f.clear(); }
-  if (x.key === 'ticket'){ state.drilled = x.v[state.groupBy]; state.selTicket = x.v; }
-  else { state.groupBy = x.key; state.drilled = x.v; state.selTicket = null; }
+  if (x.key === 'ticket'){ state.drilled = x.v[state.groupBy]; state.lot = NESTS[state.groupBy] ? x.v.lot : null; state.selTicket = x.v; }
+  else { state.groupBy = x.key; state.drilled = x.v; state.lot = null; state.selTicket = null; }
   state.openOrb = null; tick(); renderOrbs(true); render();
   /* a busy deck turns so the ticket found is in the middle of the screen, not off the edge */
   if (x.key === 'ticket'){ const d = els.deckC, g = d._geo, el = d._map && d._map.get(x.v.id); if (g && el && g.maxOff > 0) spinTo(d, -(g.a0 + el._i * g.step)); }
@@ -1937,6 +1989,7 @@ function writeURL(){
   const q = viewParams();
   if (state.table) q.set('table', '1');
   if (state.drilled !== null) q.set('open', state.drilled);
+  if (state.lot !== null) q.set('lot', state.lot);
   if (state.selTicket) q.set('ticket', state.selTicket.id);
   q.delete('cards'); q.delete('size');   /* how cards look is the device's choice, not part of a link */
   try { history.replaceState(null, '', '#' + q.toString()); } catch (e) {}
@@ -1956,6 +2009,7 @@ function readParams(q){
     state.filters[k] = new Set((q.get(k) || '').split('|').filter(v => known.has(v)));
   }
   state.drilled = q.has('open') ? q.get('open') : null;
+  state.lot = q.has('lot') ? q.get('lot') : null;
   state.selTicket = TICKETS.find(t => String(t.id) === q.get('ticket')) || null;
 }
 /* a link wins; with no link the page opens on Home */
