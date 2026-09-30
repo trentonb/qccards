@@ -646,7 +646,7 @@ function trendOf(ts){
   return o;
 }
 /* loads: received date and time by default (oldest left), ticket number for Name, else the chosen measure */
-const loadCmp = (a, b) => state.sort === 'default' ? a.ts - b.ts : state.sort === 'name' ? a.id - b.id : a[state.sort] - b[state.sort];
+const loadCmp = (a, b) => state.sort === 'default' || state.sort === 'n' ? a.ts - b.ts : state.sort === 'name' ? a.id - b.id : a[state.sort] - b[state.sort];
 /* tickets into group cards by one field; sub is the second line on a lot card */
 function groupBy(tickets, dim, sub){
   const m = new Map();
@@ -659,6 +659,7 @@ function groupBy(tickets, dim, sub){
   /* default: by each group's most recent load, oldest on the left, newest on the right */
   gs.sort((a,b) => state.sort === 'default' || (state.sort === 'name' && dim === 'day') ? a.last - b.last
     : state.sort === 'name' ? String(a.key).localeCompare(String(b.key), undefined, {numeric:true})
+    : state.sort === 'n' ? b.n - a.n || a.last - b.last
     : a[state.sort] - b[state.sort]);
   return gs;
 }
@@ -885,7 +886,7 @@ glassDrag(segEl, segLens, segBtns, {
   tap: i => { setDays(7 - +segBtns[i].dataset.p, 6); render(); }
 });
 /* -------------------------------------------------------------------- orbs */
-const SORTS = [['default','Date','→'], ['name','Name','A–Z'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑']];
+const SORTS = [['default','Date','→'], ['name','Name','A–Z'], ['n','Loads','↓'], ['p','Pressure','↑'], ['st','Starch','↑'], ['ss','Solids','↑']];
 const PICK_OVER = 8;
 const ORBS = [
   {k:'groupBy', name:'Blades by', kind:'group'},
@@ -932,7 +933,7 @@ CAPS.forEach(c => { const e = document.createElement('span'); e.className = 'orb
 /* options carry a small line (s) and a bold line (b) */
 function orbOptions(ob){
   if (ob.kind === 'group') return Object.keys(DIMS).map(d => ({v:d, s:DIMS[d].label, b:new Set(scope().map(t => t[d])).size, on:state.groupBy === d, say:`Blades by ${DIMS[d].label}`}));
-  if (ob.kind === 'sort') return SORTS.map(([v, l, mark]) => ({v, s:l, b:mark, on:state.sort === v, say:`Order by ${l}${v === 'default' ? ', oldest to newest' : v === 'name' ? '' : ', low to high'}`}));
+  if (ob.kind === 'sort') return SORTS.map(([v, l, mark]) => ({v, s:l, b:mark, on:state.sort === v, say:`Order by ${l}${v === 'default' ? ', oldest to newest' : v === 'name' ? '' : v === 'n' ? ', most first' : ', low to high'}`}));
   const f = state.filters[ob.k], inScope = scope(ob.k);
   const vals = [...new Set(TICKETS.map(t => t[ob.k]))].sort();
   return [{v:null, s:'All', b:inScope.length, on:f.size === 0, say:`All, ${inScope.length} loads`}]
@@ -2001,7 +2002,7 @@ function readParams(q){
   const d = /^([0-6])-([0-6])$/.exec(q.get('days') || '');
   if (d && +d[1] <= +d[2]) setDays(+d[1], +d[2]);
   if (DIMS[q.get('by')]) state.groupBy = q.get('by');
-  state.sort = ['name','p','st','ss'].includes(q.get('sort')) ? q.get('sort') : 'default';
+  state.sort = ['name','n','p','st','ss'].includes(q.get('sort')) ? q.get('sort') : 'default';
   state.show = KEYS.includes(q.get('show')) ? q.get('show') : 'all';
   state.table = q.get('table') === '1';
   for (const k in state.filters){
